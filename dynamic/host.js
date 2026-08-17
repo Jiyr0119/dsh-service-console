@@ -48,9 +48,10 @@ return {
       } catch (e) { return { stdout: '', stderr: String((e && e.message) || e), code: null } }
     }
 
+    // ps lstart: "Mon Aug 17 19:32:16 2026" → epoch ms（5 个 token：星期 月 日 时间 年）
     function parseLstart(str) {
       const parts = String(str).trim().split(/\s+/)
-      if (parts.length < 6) return null
+      if (parts.length < 5) return null
       const mon = MONTHS[parts[1]]
       const day = parseInt(parts[2], 10)
       const year = parseInt(parts[4], 10)
@@ -101,21 +102,33 @@ return {
     function shellQuote(s) { return "'" + String(s).replace(/'/g, "'\\''") + "'" }
 
     // ---------- T1-5 Redaction ----------
-    const REDACT_PATTERNS = [
-      /(--(?:token|password|passwd|secret|key|api[-_]?key|client[-_]?secret|cookie|session))\s*[=:]\s*(\S+)/gi,
-      /((?:token|password|passwd|secret|api[-_]?key|client[-_]?secret|authorization|set-cookie|connection[-_]?string))\s*=\s*(['"]?)([^\s&'"]+)\2/gi,
-      /(postgres(?:ql)?|mysql|redis|mongodb)(\+s?)?:\/\/[^\s@]+@/gi,
-      /\b(eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,})\b/g,
+    const REDACT_RULES = [
+      {
+        // --token=abc123 / --token abc123 / --token:abc123 → 保留 --token 与分隔符，值脱敏
+        re: /(--(?:token|password|passwd|secret|key|api[-_]?key|client[-_]?secret|cookie|session))\s*[=:]\s*(\S+)/gi,
+        replace: function (m) { return m.replace(/(?:[=:]\s*|\s+)\S+$/, '=***') },
+      },
+      {
+        // KEY=value / KEY='value' → 保留 KEY=，值脱敏
+        re: /((?:token|password|passwd|secret|api[-_]?key|client[-_]?secret|authorization|set-cookie|connection[-_]?string))\s*=\s*(['"]?)([^\s&'"]+)\2/gi,
+        replace: function (m, p1, p2) { return (p1 || '') + '=' + (p2 || '') + '***' },
+      },
+      {
+        // scheme://user:pass@ → 保留 scheme://，凭据脱敏
+        re: /(postgres(?:ql)?|mysql|redis|mongodb)(\+s?)?:\/\/[^\s@]+@/gi,
+        replace: function (m, p1) { return (p1 || '') + '://***@' },
+      },
+      {
+        // JWT
+        re: /\b(eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,})\b/g,
+        replace: function () { return '***' },
+      },
     ]
     function redact(command) {
       if (typeof command !== 'string' || !command) return command
       let out = command
-      for (const re of REDACT_PATTERNS) {
-        out = out.replace(re, (match, p1, p2, p3) => {
-          if (p1 && /token|pass|secret|key|cookie/i.test(p1) && p2 !== undefined) return p1 + p2 + '***'
-          if (p3) return (p1 || '') + (p2 || '') + '***'
-          return '***'
-        })
+      for (const rule of REDACT_RULES) {
+        out = out.replace(rule.re, function () { return rule.replace.apply(null, arguments) })
       }
       return out
     }
