@@ -1,0 +1,16 @@
+# Changelog
+
+## 0.1.0 (2026-08-17)
+
+- **首个版本**：DSH 本地开发服务控制台（macOS/Linux）。
+- 服务发现：监听 TCP 端口 → PID/PPID/命令/工作目录/进程组/启动时间（`lsof`/`ps` 批量命令，单目标失败不中断）。
+- 归属模型：会话启动台账（`tools/result` 观察）→ `本次对话`；工作区推断 / 本机其他 / 未知 / 受保护 五级归属与证据链。
+- 控制：进程组优雅停止（SIGTERM）、安全重启（台账启动命令）；二次确认；操作前重扫校验；错误码（`TARGET_GONE`/`UNKNOWN_OWNERSHIP`/`GRACEFUL_TIMEOUT`/`RESTART_UNSAFE` 等）。
+- 安全：命令脱敏；未知/受保护只读；强制终止默认关闭；无隐式自动清理；配置持久化（`~/.dsh/plugins/dsh-service-console/config.json`）。
+- 面板：会话头部入口 + `shell.overlay` 浮层；范围筛选（对话/工作区/本机）、搜索、详情证据、URL 打开、配置、zh/en、深浅主题、5s 自动轮询。
+- 原生包：Host `webServer` JSON 路由（`/dsh-sc/api/*`，逐条注册）+ Client `__ModuleLoader__` bundle（id = 包名）。
+- 测试：单元 7 项 + Host 集成 2 项（`node --test`）。
+
+## 动态原型阶段（M1，未发布）
+
+- `scdev-2` 动态插件迭代（pkg-2 → pkg-18）：ProcessInspector → ServiceRegistry → 台账/归属/脱敏 → 生命周期/API/配置 → 服务级面板（范围/搜索/配置/i18n）。

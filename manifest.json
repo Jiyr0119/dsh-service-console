@@ -1,0 +1,24 @@
+{
+  "id": "dsh-service-console",
+  "name": "服务控制台 (Service Console)",
+  "version": "0.1.0",
+  "description": "本地开发服务控制台：发现监听端口，识别归属，安全停止/重启",
+  "kind": "dynamic-cordis-plugin",
+  "platforms": {
+    "host": "src/index.ts",
+    "client": "src/client/index.tsx"
+  },
+  "host": {
+    "handlers": ["scan", "detail", "stop", "restart", "config", "actions"],
+    "services": ["shell", "workspaceRegistry"]
+  },
+  "client": {
+    "slots": [
+      "conversation.session.header.utilities",
+      "shell.overlay",
+      "settings.section"
+    ],
+    "services": ["slots", "timer"]
+  },
+  "license": "MIT"
+}

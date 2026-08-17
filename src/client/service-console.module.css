@@ -1,0 +1,134 @@
+/* dsh-service-console · ServiceConsole 面板样式（CSS Modules，经 lightningcss 内联注入） */
+.panel {
+  position: fixed;
+  top: 72px;
+  right: 20px;
+  z-index: 9999;
+  width: 540px;
+  max-height: min(640px, calc(100dvh - 110px));
+  overflow: auto;
+  background: var(--dsw-alias-bg-overlay, #262626);
+  color: var(--dsw-alias-label-primary, #eee);
+  border: 1px solid var(--dsw-alias-border-l1, #444);
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  pointer-events: auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.row {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--dsw-alias-border-l1, #333);
+}
+
+.rowMain {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.name {
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--dsw-alias-label-secondary, #999);
+}
+
+.ok {
+  color: var(--dsw-alias-state-success-primary, #4ade80);
+}
+
+.err {
+  color: var(--dsw-alias-state-error-primary, #f87171);
+}
+
+.warn {
+  color: var(--dsw-alias-state-warn-primary, #fbbf24);
+}
+
+.btn {
+  cursor: pointer;
+  font-size: 11px;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--dsw-alias-border-l1, #555);
+  background: var(--dsw-alias-bg-layer-1, #333);
+  color: var(--dsw-alias-label-primary, #eee);
+  text-decoration: none;
+  font-family: inherit;
+}
+
+.badge {
+  border-radius: 4px;
+  padding: 0 5px;
+  font-size: 10px;
+  border: 1px solid currentColor;
+}
+
+.input {
+  background: var(--dsw-alias-bg-layer-1, #333);
+  color: var(--dsw-alias-label-primary, #eee);
+  border: 1px solid var(--dsw-alias-border-l1, #555);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-family: inherit;
+}
+
+.search {
+  width: 100%;
+  margin-bottom: 6px;
+  box-sizing: border-box;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.configBox {
+  background: var(--dsw-alias-bg-layer-1, #333);
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.configRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.confirmRow {
+  margin-top: 4px;
+}
+
+.detailBox {
+  margin-top: 4px;
+  background: var(--dsw-alias-bg-layer-1, #333);
+  padding: 6px;
+  border-radius: 6px;
+}
+
+.entry {
+  background: var(--dsw-alias-bg-layer-1, #333);
+  color: var(--dsw-alias-label-primary, #eee);
+  border: 1px solid var(--dsw-alias-border-l1, #555);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}

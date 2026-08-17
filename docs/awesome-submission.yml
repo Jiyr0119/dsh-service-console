@@ -1,0 +1,76 @@
+# awesome-dsh-plugin 提交材料（T3-5 草案）
+
+> canonical 上游：`awesome-dsh-plugin/awesome-dsh-plugin`（勿用 `omdsh-dev` fork；提交当天用
+> `gh api repos/awesome-dsh-plugin/awesome-dsh-plugin --jq '.parent'` 与 `git ls-tree -r upstream/main scripts/` 复查生成流程）。
+> 流程：先双语 issue → 修改 YAML 数据源 → `node scripts/generate-readme.mjs`（勿手改 README）→ `--check` → `awesome-lint` → `build-site` → 双语 PR。
+
+## 1. 门槛自查（提交前复核贡献指南）
+
+- [x] `package.json` 声明 `dsh.bundle.patch` → `./cordis.patch.yml`（已声明）
+- [x] 真实可用代码 + 活跃维护（T1/T2 已完成，测试 9 项全绿）
+- [x] 添加 `dsh-plugin` GitHub topic（T3-4 执行时配置）
+- [ ] repo 年龄 ≥ 1 天、commits ≥ 10（创建后自然满足，提交当天复核）
+- [x] 描述只讲事实，无营销词
+
+## 2. 数据源 YAML 草案
+
+粘贴到 awesome 仓库 `data/plugins/Jiyr0119__dsh-service-console.yml`（字段名以当期 schema 为准）：
+
+```yaml
+url: https://github.com/Jiyr0119/dsh-service-console
+name: Jiyr0119/dsh-service-console
+category: ui
+description:
+  en: 'Local development service console for DSH: discovers listening ports, shows service ownership, and safely inspects, stops, or restarts services related to a conversation or workspace.'
+  zh: 'DSH 本地开发服务控制台：发现监听端口，展示服务归属，并安全地查看、停止或重启与对话或工作区相关的服务。'
+```
+
+- 描述以句号结尾；含 `: `（英文冒号+空格）必须加引号；避免裸 `[file: ...]` 触发 awesome-lint 引用规则。
+
+## 3. 截图（data/screenshots.json，key = 仓库 URL）
+
+待 T1-18 浏览器验证时截取并上传 `assets/screenshots/`（GitHub raw URL 引用）：
+
+```json
+"https://github.com/Jiyr0119/dsh-service-console": [
+  "https://raw.githubusercontent.com/Jiyr0119/dsh-service-console/main/assets/screenshots/panel.png",
+  "https://raw.githubusercontent.com/Jiyr0119/dsh-service-console/main/assets/screenshots/ownership.png",
+  "https://raw.githubusercontent.com/Jiyr0119/dsh-service-console/main/assets/screenshots/stop-confirm.png"
+]
+```
+
+建议截图内容：服务列表面板 / 归属徽标与详情证据 / 停止确认框。
+
+## 4. 执行步骤（T3-4 仓库就绪后）
+
+```bash
+# 1) 双语 issue
+gh issue create --repo awesome-dsh-plugin/awesome-dsh-plugin --title "Add DSH Service Console / 新增 DSH 服务控制台" --body-file issue.md
+
+# 2) 从 canonical 建分支
+gh repo clone Jiyr0119/awesome-dsh-plugin && cd awesome-dsh-plugin
+git remote add upstream https://github.com/awesome-dsh-plugin/awesome-dsh-plugin.git
+git fetch upstream main
+git checkout -b feat/add-dsh-service-console upstream/main
+
+# 3) 改 YAML + 截图 → 生成/校验
+npm ci
+node scripts/generate-readme.mjs
+node scripts/generate-readme.mjs --check
+npx awesome-lint
+node scripts/build-site.mjs
+
+# 4) 提交数据源 + 生成的 README → 双语 PR
+git add data/plugins README.md README.zh.md
+git commit -m "Add DSH Service Console"
+git push origin feat/add-dsh-service-console
+gh pr create --repo awesome-dsh-plugin/awesome-dsh-plugin --base main --head Jiyr0119:feat/add-dsh-service-console --title "Add DSH Service Console / 新增 DSH 服务控制台" --body-file pr.md
+
+# 5) 查重 + CI
+gh search prs --repo awesome-dsh-plugin/awesome-dsh-plugin "Jiyr0119"
+gh pr view <num> --repo awesome-dsh-plugin/awesome-dsh-plugin --json statusCheckRollup,mergeStateStatus
+```
+
+## 5. 差异化定位
+
+对比 `DSH-better-sidebar` 等全家桶：本插件是 **standalone / single-purpose / zero-config / one-command** 的本地开发服务控制台，只做"服务发现 + 归属 + 安全控制"一件事。

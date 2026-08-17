@@ -1,0 +1,5 @@
+# 组合补丁：dsh plugin add 时把插件行插入 profile 组合。
+# 注意：作用域包名必须加引号（YAML 中 @ 不能作为裸标量起始字符，否则 dsh web 启动解析补丁失败）。
+- insert:
+    - id: service-console
+      name: '@jiyr0119/dsh-service-console'
