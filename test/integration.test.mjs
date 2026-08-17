@@ -8,19 +8,6 @@ import { execSync } from 'node:child_process'
 
 const { buildSnapshot } = await import('../lib/host/service-registry.js')
 
-// 用 node:child_process 实现 ShellLike（真实系统命令）
-const shellAdapter = {
-  resolve: (r) => r,
-  run: async (spec) => {
-    try {
-      const stdout = execSync(spec.command, { timeout: spec.timeout || 5000, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
-      return { stdout, stderr: '', code: 0 }
-    } catch (e) {
-      return { stdout: '', stderr: String(e?.stderr || e), code: e?.status ?? 1 }
-    }
-  },
-}
-
 function startTempServer(port) {
   const child = spawn(
     process.execPath,
@@ -48,7 +35,7 @@ test('buildSnapshot 发现真实临时 HTTP 服务（端口/PID/命令/cwd）', 
   const child = startTempServer(port)
   try {
     assert.ok(waitForPort(port), 'temp server should listen on ' + port)
-    const snap = await buildSnapshot(shellAdapter, [], [])
+    const snap = await buildSnapshot([], []) // 默认原生 runCommand（node:child_process）
     const svc = snap.services.find((s) => s.listeners.some((l) => l.port === port))
     assert.ok(svc, 'snapshot should contain the temp service on ' + port)
     assert.equal(svc.listeners[0].host, '127.0.0.1')
@@ -68,7 +55,7 @@ test('stop 命令链路：kill 进程组后端口释放', async () => {
   const child = startTempServer(port)
   try {
     assert.ok(waitForPort(port))
-    const snap = await buildSnapshot(shellAdapter, [], [])
+    const snap = await buildSnapshot([], [])
     const svc = snap.services.find((s) => s.listeners.some((l) => l.port === port))
     assert.ok(svc, 'temp service found')
     // 仅对测试自建的单进程发 SIGTERM（temp server 与测试进程共享 pgid，不能使用 -pgid 以免误杀测试自身）

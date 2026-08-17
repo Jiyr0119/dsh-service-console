@@ -1,15 +1,15 @@
 // T1-6 Lifecycle：停止/重启状态机与防护（PID 复用校验、优雅超时、强制终止开关）
-import type { ApiResult, Config, LedgerEntry, ShellLike, Snapshot, TimerLike } from './types'
-import { runCommand, shellQuote } from './process-inspector'
+import type { ApiResult, Config, LedgerEntry, Snapshot, TimerLike } from './types'
+import { runCommand, shellQuote, type CommandRunner } from './process-inspector'
 import { redact } from './redaction'
 
 export interface LifecycleDeps {
-  shell: ShellLike
   timer: TimerLike
   config: Config
   buildSnapshot: () => Promise<Snapshot>
   ledgerList: () => LedgerEntry[]
   logAction: (serviceId: string | null, action: string, result: string, code?: string | null) => void
+  commandRunner?: CommandRunner
 }
 
 function ok<T>(data: T): ApiResult<T> {
@@ -27,7 +27,8 @@ export async function stopService(deps: LifecycleDeps, serviceId: string, mode?:
   if (svc.ownership === 'unknown') return err('UNKNOWN_OWNERSHIP', '无法确认服务来源，默认不允许控制')
   // 进程组优先（PRD §7.3：操作前校验已在 buildSnapshot 中重新确认身份）
   const target = svc.processGroupId ? '-' + svc.processGroupId : String(svc.pid)
-  await runCommand(deps.shell, 'kill -TERM ' + target, 3000)
+  const run = deps.commandRunner || runCommand
+  await run('kill -TERM ' + target, 3000)
   const deadline = Date.now() + (deps.config.gracefulTimeout || 3000)
   while (Date.now() < deadline) {
     await deps.timer.timeout(400)
@@ -38,7 +39,7 @@ export async function stopService(deps: LifecycleDeps, serviceId: string, mode?:
     }
   }
   if (deps.config.forceKill) {
-    await runCommand(deps.shell, 'kill -KILL ' + target, 3000)
+    await (deps.commandRunner || runCommand)('kill -KILL ' + target, 3000)
     deps.logAction(serviceId, 'stop', 'force-killed')
     return ok({ result: 'force-killed' })
   }
@@ -56,7 +57,7 @@ export async function restartService(deps: LifecycleDeps, serviceId: string): Pr
   const stopped = await stopService(deps, serviceId, 'graceful')
   if (!stopped.ok && stopped.error?.code !== 'TARGET_GONE') return stopped
   const cmd = 'cd ' + shellQuote(entry.cwd || '.') + ' && ' + entry.command
-  await runCommand(deps.shell, cmd + ' >/dev/null 2>&1 &', 3000)
+  await (deps.commandRunner || runCommand)(cmd + ' >/dev/null 2>&1 &', 3000)
   deps.logAction(serviceId, 'restart', 'started')
   return ok({ result: 'started', command: redact(entry.command) ?? entry.command })
 }

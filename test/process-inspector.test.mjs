@@ -63,12 +63,10 @@ test('classifyOwnership 五级归属', () => {
   assert.equal(unknown.ownership, 'unknown')
 })
 
-test('runCommand 单条失败不中断（shell 返回码归一化）', async () => {
-  const fakeShell = {
-    resolve: (r) => r,
-    run: async () => ({ stdout: 'hi', stderr: '', code: 0 }),
-  }
-  const res = await runCommand(fakeShell, 'echo hi')
-  assert.equal(res.stdout, 'hi')
+test('runCommand 原生执行：真实命令返回 stdout 与 code', async () => {
+  const res = await runCommand('echo hi')
+  assert.equal(res.stdout.trim(), 'hi')
   assert.equal(res.code, 0)
+  const missing = await runCommand('nonexistent_cmd_xyz 2>/dev/null; exit 3')
+  assert.equal(missing.code, 3)
 })

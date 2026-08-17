@@ -1,7 +1,7 @@
 // T1-2 ServiceRegistry：服务快照聚合与身份（serviceId / sha256 fingerprint）
 import { createHash } from 'node:crypto'
-import type { LedgerEntry, Service, ShellLike, Snapshot, WorkspaceLike } from './types'
-import { scanRaw } from './process-inspector'
+import type { LedgerEntry, Service, Snapshot, WorkspaceLike } from './types'
+import { scanRaw, runCommand, type CommandRunner } from './process-inspector'
 import { redact } from './redaction'
 import { classifyOwnership } from './ownership'
 
@@ -15,11 +15,11 @@ function isLocalhost(host: string): boolean {
 
 // 由 PID 聚合 listener，生成服务级快照（含归属、fingerprint）
 export async function buildSnapshot(
-  shell: ShellLike,
   ledgers: LedgerEntry[],
   workspaces: WorkspaceLike[],
+  commandRunner: CommandRunner = runCommand,
 ): Promise<Snapshot> {
-  const raw = await scanRaw(shell)
+  const raw = await scanRaw(commandRunner)
 
   // 按 PID 聚合 listener
   const byPid = new Map<number, { host: string; port: number; protocol: string }[]>()

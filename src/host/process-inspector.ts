@@ -1,4 +1,6 @@
 // T1-1 ProcessInspector：平台命令执行与解析（macOS/Linux，纯函数可单测）
+// 原生 Host 用 node:child_process 直接执行系统命令（动态 Host 的 shell 服务在此环境拿不到 stdout，原生不再依赖它）
+import { execFileSync } from 'node:child_process'
 import type { ShellLike } from './types'
 
 const MONTHS: Record<string, number> = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6, Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12 }
@@ -9,20 +11,25 @@ export interface CommandResult {
   code: number | null
 }
 
-// 单条命令失败不中断整体（FR-01）
-export async function runCommand(shell: ShellLike, command: string, timeoutMs?: number): Promise<CommandResult> {
+export type CommandRunner = (command: string, timeoutMs?: number) => CommandResult | Promise<CommandResult>
+
+// 原生命令执行（execFileSync，shell: /bin/sh -c；失败不抛，返回 code）
+export function runCommand(command: string, timeoutMs?: number): CommandResult {
   try {
-    const spec = shell.resolve({ command, timeout: timeoutMs || 5000 })
-    const res = await shell.run(spec)
-    const stdout =
-      typeof res.stdout === 'string' ? res.stdout
-        : typeof res.output === 'string' ? res.output
-          : typeof res.text === 'string' ? res.text : ''
-    const stderr = typeof res.stderr === 'string' ? res.stderr : ''
-    const code = res.code !== undefined ? (res.code as number) : res.exitCode !== undefined ? (res.exitCode as number) : null
-    return { stdout, stderr, code }
+    const stdout = execFileSync('/bin/sh', ['-c', command], {
+      encoding: 'utf8',
+      timeout: timeoutMs || 5000,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      maxBuffer: 16 * 1024 * 1024,
+    })
+    return { stdout, stderr: '', code: 0 }
   } catch (e) {
-    return { stdout: '', stderr: String((e as Error)?.message || e), code: null }
+    const err = e as { stdout?: string | Buffer; stderr?: string | Buffer; status?: number }
+    return {
+      stdout: typeof err.stdout === 'string' ? err.stdout : err.stdout ? String(err.stdout) : '',
+      stderr: typeof err.stderr === 'string' ? err.stderr : err.stderr ? String(err.stderr) : '',
+      code: err.status ?? 1,
+    }
   }
 }
 
@@ -128,9 +135,9 @@ export interface RawScan {
 }
 
 // 端口 + 进程信息 + cwd + pgid 的原始扫描（按 PID 聚合前）
-export async function scanRaw(shell: ShellLike): Promise<RawScan> {
+export async function scanRaw(commandRunner: CommandRunner = runCommand): Promise<RawScan> {
   const partialWarnings: string[] = []
-  const tcp = await runCommand(shell, 'lsof -nP -iTCP -sTCP:LISTEN', 5000)
+  const tcp = await commandRunner('lsof -nP -iTCP -sTCP:LISTEN', 5000)
   if (tcp.code !== 0 && tcp.code !== null && tcp.code !== 1) partialWarnings.push('TCP listener scan exit=' + String(tcp.code))
   const rows = parseListenRows(tcp.stdout)
   const pids = [...new Set(rows.map((r) => r.pid))]
@@ -138,11 +145,11 @@ export async function scanRaw(shell: ShellLike): Promise<RawScan> {
 
   const procs = new Map<number, RawProcess>()
   if (pids.length > 0) {
-    const psRes = await runCommand(shell, 'ps -o pid=,ppid=,lstart=,command= -p ' + pidList, 5000)
+    const psRes = await commandRunner('ps -o pid=,ppid=,lstart=,command= -p ' + pidList, 5000)
     const psRows = parsePsRows(psRes.stdout)
     if (psRes.code !== 0 && psRes.code !== null) partialWarnings.push('ps detail partial')
 
-    const pgidRes = await runCommand(shell, 'ps -o pid=,pgid= -p ' + pidList, 5000)
+    const pgidRes = await commandRunner('ps -o pid=,pgid= -p ' + pidList, 5000)
     const pgidMap = new Map<number, number>()
     for (const line of String(pgidRes.stdout).split('\n')) {
       const parts = line.trim().split(/\s+/)
@@ -154,7 +161,7 @@ export async function scanRaw(shell: ShellLike): Promise<RawScan> {
     }
 
     let cwdByPid = new Map<number, string>()
-    const cwdRes = await runCommand(shell, 'lsof -a -p ' + pidList + ' -d cwd', 5000)
+    const cwdRes = await commandRunner('lsof -a -p ' + pidList + ' -d cwd', 5000)
     for (const line of String(cwdRes.stdout).split('\n')) {
       const t = line.trim()
       if (!t || t.startsWith('COMMAND')) continue

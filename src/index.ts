@@ -40,7 +40,6 @@ function sendJson(res: unknown, status: number, payload: unknown): void {
 export default {
   inject: ['timer', 'webServer'],
   apply(ctx: Context) {
-    const shell = ctx.get('shell')
     const workspaceRegistry = ctx.get('workspaceRegistry')
     const timer = ctx.timer
 
@@ -57,10 +56,9 @@ export default {
     }
 
     const deps = {
-      shell: shell!,
       timer,
       config,
-      buildSnapshot: () => buildSnapshot(shell!, ledger.list, workspaces()),
+      buildSnapshot: () => buildSnapshot(ledger.list, workspaces()),
       ledgerList: () => ledger.list,
       logAction,
     }
@@ -87,12 +85,12 @@ export default {
     const routes: { path: string; handler: (args: Record<string, unknown>) => Promise<ApiResult> }[] = [
       {
         path: '/dsh-sc/api/services/scan',
-        handler: async () => ({ ok: true, data: await buildSnapshot(shell!, ledger.list, workspaces()) }),
+        handler: async () => ({ ok: true, data: await buildSnapshot(ledger.list, workspaces()) }),
       },
       {
         path: '/dsh-sc/api/services/detail',
         handler: async (args) => {
-          const s = await buildSnapshot(shell!, ledger.list, workspaces())
+          const s = await buildSnapshot(ledger.list, workspaces())
           const svc = s.services.find((x) => x.id === String(args.serviceId ?? ''))
           if (!svc) return { ok: false, error: { code: 'TARGET_GONE', message: '服务不存在' } }
           return { ok: true, data: { ...svc, recentActions: actionLog.filter((a) => a.serviceId === svc.id).slice(-10) } }

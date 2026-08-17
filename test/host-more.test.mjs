@@ -35,12 +35,12 @@ test('SessionLedger 只记录本会话的常驻 dev 命令', () => {
 function makeDeps(overrides = {}) {
   const calls = { killed: [], restarted: [], logged: [] }
   const deps = {
-    shell: { resolve: (r) => r, run: async (spec) => { calls.killed.push(spec.command); return { stdout: '', stderr: '', code: 0 } } },
     timer: { timeout: async () => undefined, timeout2: () => () => undefined },
     config: { refreshInterval: 5000, defaultScope: 'workspace', gracefulTimeout: 3000, showUnknown: true, forceKill: false, autoCleanup: false },
     buildSnapshot: async () => ({ services: [] }),
     ledgerList: () => [],
     logAction: (id, action, result, code) => calls.logged.push({ id, action, result, code }),
+    commandRunner: async (command) => { calls.killed.push(command); return { stdout: '', stderr: '', code: 0 } },
     ...overrides,
   }
   return { deps, calls }
@@ -113,22 +113,18 @@ const CWD = [
   'python3 2222 jonathan cwd DIR 1,7 160 1 /ws/app',
 ].join('\n')
 
-function fakeShell() {
-  return {
-    resolve: (r) => r,
-    run: async (spec) => {
-      const c = spec.command
-      const out = c.startsWith('lsof -nP -iTCP -sTCP:LISTEN') ? LSOF
-        : c.startsWith('ps -o pid=,ppid=') ? PS_DETAIL
-          : c.startsWith('ps -o pid=,pgid=') ? PS_PGID
-            : c.startsWith('lsof -a -p') ? CWD : ''
-      return { stdout: out, stderr: '', code: 0 }
-    },
+function fakeRunner() {
+  return (command) => {
+    const out = command.startsWith('lsof -nP -iTCP -sTCP:LISTEN') ? LSOF
+      : command.startsWith('ps -o pid=,ppid=') ? PS_DETAIL
+        : command.startsWith('ps -o pid=,pgid=') ? PS_PGID
+          : command.startsWith('lsof -a -p') ? CWD : ''
+    return { stdout: out, stderr: '', code: 0 }
   }
 }
 
 test('buildSnapshot 多端口聚合 + fingerprint 稳定', async () => {
-  const s1 = await buildSnapshot(fakeShell(), [], [])
+  const s1 = await buildSnapshot([], [], fakeRunner())
   assert.equal(s1.services.length, 2)
   const nodeSvc = s1.services.find((x) => x.pid === 1111)
   assert.equal(nodeSvc.listeners.length, 2, '同一 PID 多端口合并为一条服务')
@@ -137,7 +133,7 @@ test('buildSnapshot 多端口聚合 + fingerprint 稳定', async () => {
   assert.equal(pySvc.listeners[0].host, '*')
   assert.equal(pySvc.listeners[0].url, null, '通配绑定不生成 URL')
   // fingerprint 稳定（同输入同输出）
-  const s2 = await buildSnapshot(fakeShell(), [], [])
+  const s2 = await buildSnapshot([], [], fakeRunner())
   assert.equal(s1.services[0].fingerprint, s2.services[0].fingerprint)
   assert.equal(s1.services[0].id, s2.services[0].id)
   assert.ok(s1.services[0].fingerprint.startsWith('sha256:'))

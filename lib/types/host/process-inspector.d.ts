@@ -1,10 +1,10 @@
-import type { ShellLike } from './types';
 export interface CommandResult {
     stdout: string;
     stderr: string;
     code: number | null;
 }
-export declare function runCommand(shell: ShellLike, command: string, timeoutMs?: number): Promise<CommandResult>;
+export type CommandRunner = (command: string, timeoutMs?: number) => CommandResult | Promise<CommandResult>;
+export declare function runCommand(command: string, timeoutMs?: number): CommandResult;
 export declare function parseLstart(str: string): number | null;
 export interface ListenRow {
     command: string;
@@ -48,4 +48,4 @@ export interface RawScan {
     procs: Map<number, RawProcess>;
     partialWarnings: string[];
 }
-export declare function scanRaw(shell: ShellLike): Promise<RawScan>;
+export declare function scanRaw(commandRunner?: CommandRunner): Promise<RawScan>;
