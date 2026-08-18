@@ -122,7 +122,9 @@ export function ServiceConsoleEntry(): React.ReactElement {
       title="Service Console"
       aria-label="Service Console"
     >
-      {open ? '✕' : '🖥 SC'}
+      {open ? '✕' : null}
+      {!open ? <span className={styles.entryLabel}>Services</span> : null}
+      {!open ? <span className={styles.entryIcon}>🖥</span> : null}
     </button>
   )
 }
