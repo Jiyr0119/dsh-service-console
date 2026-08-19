@@ -1,5 +1,7 @@
 # DSH Service Console
 
+**English** | [简体中文](./README.zh.md)
+
 > A local development service console for DSH: discover listening ports, identify services related to the current conversation or workspace, and safely inspect, stop, or restart them.
 
 **DSH 本地开发服务控制台：发现监听端口，识别与当前对话或工作区相关的服务，并安全地查看、停止和重启。**
@@ -43,6 +45,23 @@ npm run typecheck
 npm run build
 npm test          # unit + integration tests (node --test)
 ```
+
+## Testing
+
+`npm test` builds once and runs the whole suite with Node's built-in test runner (`node --test`). No extra test framework is required.
+
+| File | Type | What it covers |
+| --- | --- | --- |
+| `test/process-inspector.test.mjs` | Unit | Platform output parsing (`parseLstart`, `parseListenRows`, `parsePsRows`, `parseAddress`), command redaction, five-level ownership classification |
+| `test/host-more.test.mjs` | Unit | Config validation, session ledger, lifecycle state machine (stop/restart) with fake dependencies, service aggregation & fingerprint stability |
+| `test/integration.test.mjs` | Integration | Real system commands + a temporary HTTP server spawned by the test itself; signals are only ever sent to test-owned processes |
+
+```bash
+npm test                                   # full suite
+npm run build && node --test test/process-inspector.test.mjs   # run a single file
+```
+
+Unit tests import the built output under `lib/`, so the sources must be compiled first — `npm test` handles this automatically.
 
 ## License
 

@@ -1,5 +1,7 @@
 # DSH Service Console
 
+[English](./README.md) | **简体中文**
+
 > A local development service console for DSH: discover listening ports, identify services related to the current conversation or workspace, and safely inspect, stop, or restart them.
 >
 > **DSH 本地开发服务控制台：发现监听端口，识别与当前对话或工作区相关的服务，并安全地查看、停止和重启。**
@@ -43,6 +45,23 @@ npm run typecheck
 npm run build
 npm test          # 单元 + 集成测试（node --test）
 ```
+
+## 测试
+
+`npm test` 会先构建一次，再用 Node 内置测试运行器（`node --test`）执行整个测试套件，无需额外测试框架。
+
+| 文件 | 类型 | 覆盖内容 |
+| --- | --- | --- |
+| `test/process-inspector.test.mjs` | 单元测试 | 平台输出解析（`parseLstart`、`parseListenRows`、`parsePsRows`、`parseAddress`）、命令脱敏、五级归属分类 |
+| `test/host-more.test.mjs` | 单元测试 | 配置校验、会话台账、基于 fake 依赖的生命周期状态机（停止/重启）、服务聚合与 fingerprint 稳定性 |
+| `test/integration.test.mjs` | 集成测试 | 真实系统命令 + 测试自建的临时 HTTP 服务；只对测试自有进程发信号 |
+
+```bash
+npm test                                                       # 全部用例
+npm run build && node --test test/process-inspector.test.mjs   # 单独运行某个文件
+```
+
+单元测试直接 import 构建产物（`lib/`），因此需要先编译源码——`npm test` 会自动完成。
 
 ## 许可证
 
