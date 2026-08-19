@@ -1,6 +1,6 @@
 {
   "id": "dsh-external/dsh-service-console",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "main": "./lib/index.js",
   "description": "本地开发服务控制台：发现监听端口，识别服务归属，安全查看/停止/重启。Local development service console for DSH.",
   "engines": {

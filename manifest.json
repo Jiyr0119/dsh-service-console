@@ -1,7 +1,7 @@
 {
   "id": "dsh-service-console",
   "name": "服务控制台 (Service Console)",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "本地开发服务控制台：发现监听端口，识别归属，安全停止/重启",
   "kind": "dynamic-cordis-plugin",
   "platforms": {

@@ -2,6 +2,12 @@
 
 [English](./README.md) | **简体中文**
 
+[![License](https://img.shields.io/github/license/Jiyr0119/dsh-service-console)](LICENSE)
+[![npm](https://img.shields.io/npm/v/@jiyr0119/dsh-service-console)](https://www.npmjs.com/package/@jiyr0119/dsh-service-console)
+[![npm downloads](https://img.shields.io/npm/dt/@jiyr0119/dsh-service-console)](https://www.npmjs.com/package/@jiyr0119/dsh-service-console)
+[![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
+[![Last commit](https://img.shields.io/github/last-commit/Jiyr0119/dsh-service-console)](https://github.com/Jiyr0119/dsh-service-console)
+
 > A local development service console for DSH: discover listening ports, identify services related to the current conversation or workspace, and safely inspect, stop, or restart them.
 >
 > **DSH 本地开发服务控制台：发现监听端口，识别与当前对话或工作区相关的服务，并安全地查看、停止和重启。**

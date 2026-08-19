@@ -2,6 +2,12 @@
 
 **English**
 
+[![License](https://img.shields.io/github/license/Jiyr0119/dsh-service-console)](LICENSE)
+[![npm](https://img.shields.io/npm/v/@jiyr0119/dsh-service-console)](https://www.npmjs.com/package/@jiyr0119/dsh-service-console)
+[![npm downloads](https://img.shields.io/npm/dt/@jiyr0119/dsh-service-console)](https://www.npmjs.com/package/@jiyr0119/dsh-service-console)
+[![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
+[![Last commit](https://img.shields.io/github/last-commit/Jiyr0119/dsh-service-console)](https://github.com/Jiyr0119/dsh-service-console)
+
 > A local development service console for DSH: discover listening ports, identify services related to the current conversation or workspace, and safely inspect, stop, or restart them.
 
 Single-purpose plugin for the DeepSeek Harness web UI. When the model (or you) starts a local dev server (`npm run dev`, Vite, Next.js, Uvicorn, Express, Rust, …), Service Console shows it in one place: which ports it listens on, which command and working directory started it, whether it belongs to this conversation or workspace, and whether it is safe to stop or restart.

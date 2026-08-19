@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2 (2026-08-19)
+
+- README 增加 License、npm、下载量、Awesome DSH Plugin 与最近提交徽章。
+- 向 awesome-dsh-plugin 提交 Service Console 收录 PR。
+
 ## 0.2.1 (2026-08-19)
 
 - 面板仅在打开时扫描，移除自动 / 定时刷新；保留手动刷新按钮。
