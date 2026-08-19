@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0 (2026-08-19)
+
+- 面板视觉重做：采用 DSH Web 风格的 graphite surface、token 化颜色、工具栏与 inspector detail card。
+- 端口列表改为展示本机全部监听服务；归属仅作为安全提示，不再隐藏服务。
+- 搜索继续支持服务名、PID、端口、命令与工作目录；保留停止前二次确认与 Host 侧安全校验。
+- 补充响应式布局、键盘可见焦点与 reduced-motion 兼容。
+
 ## 0.1.0 (2026-08-17)
 
 - **首个版本**：DSH 本地开发服务控制台（macOS/Linux）。

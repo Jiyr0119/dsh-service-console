@@ -15,7 +15,7 @@ return {
 
     const TEXTS = {
       zh: {
-        title: 'Service Console', scopeConv: '本次对话', scopeWs: '工作区', scopeMachine: '本机',
+        title: 'Service Console', scopeConv: '全部本机服务', scopeWs: '全部本机服务', scopeMachine: '全部本机服务',
         search: '搜索服务/端口/路径…', auto: '5s', config: '配置', close: '关闭',
         noSvc: '未发现服务', stop: '停止', restart: '重启', detail: '详情',
         confirmStop: '确认停止?', confirmRestart: '确认重启?', confirmTxt: '确认对 {name} (pid {pid}) 执行{action}?',
@@ -23,7 +23,7 @@ return {
         evidence: '归属证据', refreshInterval: '自动刷新间隔(ms)', gracefulTimeout: '优雅超时(ms)', forceKill: '允许强制终止',
       },
       en: {
-        title: 'Service Console', scopeConv: 'This chat', scopeWs: 'Workspace', scopeMachine: 'This Mac',
+        title: 'Service Console', scopeConv: 'All local services', scopeWs: 'All local services', scopeMachine: 'All local services',
         search: 'Search services/ports/paths…', auto: '5s', config: 'Config', close: 'Close',
         noSvc: 'no services found', stop: 'Stop', restart: 'Restart', detail: 'Detail',
         confirmStop: 'Confirm stop?', confirmRestart: 'Confirm restart?', confirmTxt: 'Run {action} on {name} (pid {pid})?',
@@ -64,7 +64,6 @@ return {
     function Panel() {
       const [open, setLocal] = React.useState(store.open)
       const [lang, setLang] = React.useState('zh')
-      const [scope, setScope] = React.useState('workspace')
       const [query, setQuery] = React.useState('')
       const [showConfig, setShowConfig] = React.useState(false)
       const [configData, setConfigData] = React.useState(null)
@@ -111,9 +110,8 @@ return {
         host.call('config', { action: 'update', patch }).then((res) => { if (res && res.data) setConfigData(res.data.config) })
       }
 
+      // Show every listening service; ownership is a safety badge, not a visibility filter.
       let rows = (view.data && view.data.services) || []
-      if (scope === 'conversation') rows = rows.filter((s) => s.ownership === 'conversation-confirmed')
-      else if (scope === 'workspace') rows = rows.filter((s) => s.ownership === 'conversation-confirmed' || s.ownership === 'workspace-inferred')
       if (query) {
         const q = String(query).toLowerCase()
         rows = rows.filter((s) => String(s.name).toLowerCase().indexOf(q) >= 0 || String(s.pid).indexOf(q) >= 0 || (s.commandSummary || '').toLowerCase().indexOf(q) >= 0 || (s.cwd || '').toLowerCase().indexOf(q) >= 0 || (s.listeners || []).some((l) => String(l.port).indexOf(q) >= 0))
@@ -127,11 +125,7 @@ return {
       return React.createElement('div', { style: STYLE.panel },
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' } },
           React.createElement('strong', null, T.title),
-          React.createElement('select', { value: scope, onChange: (e) => setScope(e.target.value), style: STYLE.input },
-            React.createElement('option', { value: 'conversation' }, T.scopeConv),
-            React.createElement('option', { value: 'workspace' }, T.scopeWs),
-            React.createElement('option', { value: 'machine' }, T.scopeMachine)
-          ),
+          React.createElement('span', { style: Object.assign({}, STYLE.muted, { padding: '3px 6px', border: '1px solid var(--dsw-alias-border-l1, #444)', borderRadius: 4 }) }, T.scopeMachine),
           React.createElement('button', { onClick: () => setLang(lang === 'zh' ? 'en' : 'zh'), style: STYLE.btn }, lang === 'zh' ? 'EN' : '中'),
           React.createElement('button', { onClick: () => { setShowConfig(!showConfig); if (!showConfig) loadConfig() }, style: STYLE.btn }, T.config),
           React.createElement('span', { style: { flex: 1 } }),

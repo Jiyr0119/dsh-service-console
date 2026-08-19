@@ -68,18 +68,18 @@ const ERROR_LABEL: Record<string, [string, string]> = {
 }
 const TEXTS = {
   zh: {
-    title: 'Service Console', search: '搜索服务/端口/路径…', scopeConv: '本次对话', scopeWs: '工作区', scopeMachine: '本机',
+    title: 'Service Console', subtitle: '本机监听服务', search: '搜索服务、端口或路径…',
     auto: '5s', config: '配置', close: '关闭', noSvc: '未发现服务', stop: '停止', restart: '重启', detail: '详情',
     confirmStop: '确认停止?', confirmRestart: '确认重启?', confirmTxt: '确认对 {name} (pid {pid}) 执行{action}?',
     ok: '确认', cancel: '取消', stopped: '已停止', restarted: '已重启', evidence: '归属证据',
-    refreshInterval: '自动刷新间隔(ms)', gracefulTimeout: '优雅超时(ms)', forceKill: '允许强制终止',
+    refreshInterval: '自动刷新间隔(ms)', gracefulTimeout: '优雅超时(ms)', forceKill: '允许强制终止', allLocal: '全部本机服务', servicesFound: '项服务', lastScan: '最近扫描', closePanel: '关闭面板',
   },
   en: {
-    title: 'Service Console', search: 'Search services/ports/paths…', scopeConv: 'This chat', scopeWs: 'Workspace', scopeMachine: 'This Mac',
+    title: 'Service Console', subtitle: 'Listening services on this Mac', search: 'Search services, ports, or paths…',
     auto: '5s', config: 'Config', close: 'Close', noSvc: 'no services found', stop: 'Stop', restart: 'Restart', detail: 'Detail',
     confirmStop: 'Confirm stop?', confirmRestart: 'Confirm restart?', confirmTxt: 'Run {action} on {name} (pid {pid})?',
     ok: 'OK', cancel: 'Cancel', stopped: 'Stopped', restarted: 'Restarted', evidence: 'Ownership evidence',
-    refreshInterval: 'Refresh interval (ms)', gracefulTimeout: 'Graceful timeout (ms)', forceKill: 'Allow force kill',
+    refreshInterval: 'Refresh interval (ms)', gracefulTimeout: 'Graceful timeout (ms)', forceKill: 'Allow force kill', allLocal: 'All local services', servicesFound: 'services', lastScan: 'Last scan', closePanel: 'Close panel',
   },
 }
 type Texts = (typeof TEXTS)['zh']
@@ -132,7 +132,6 @@ export function ServiceConsoleEntry(): React.ReactElement {
 export function ServiceConsolePanel(): React.ReactElement | null {
   const [open, setLocal] = React.useState(store.open)
   const [lang, setLang] = React.useState<'zh' | 'en'>('zh')
-  const [scope, setScope] = React.useState('workspace')
   const [query, setQuery] = React.useState('')
   const [showConfig, setShowConfig] = React.useState(false)
   const [configData, setConfigData] = React.useState<Record<string, unknown> | null>(null)
@@ -222,9 +221,9 @@ export function ServiceConsolePanel(): React.ReactElement | null {
       .catch(() => undefined)
   }
 
+  // Always show every listening service on this machine. Ownership remains a badge and safety signal,
+  // never a hidden filter; users decide which service to inspect or stop.
   let rows = view.data?.services ?? []
-  if (scope === 'conversation') rows = rows.filter((s) => s.ownership === 'conversation-confirmed')
-  else if (scope === 'workspace') rows = rows.filter((s) => s.ownership === 'conversation-confirmed' || s.ownership === 'workspace-inferred')
   if (query) {
     const q = String(query).toLowerCase()
     rows = rows.filter(
@@ -238,38 +237,34 @@ export function ServiceConsolePanel(): React.ReactElement | null {
   }
 
   const status =
-    view.phase === 'scanning' ? <div className={styles.warn}>⏳ {view.at}</div>
-      : view.phase === 'done' ? <div className={styles.ok}>✅ {view.at} · {String(view.data?.count ?? 0)} · ledger={String(view.data?.ledgerCount ?? 0)}</div>
+    view.phase === 'scanning' ? <div className={styles.status}>⏳ {T.lastScan}: {view.at}</div>
+      : view.phase === 'done' ? <div className={styles.status}>● {String(rows.length)} {T.servicesFound} · {T.lastScan}: {view.at}</div>
         : view.phase === 'error' || view.phase === 'timeout' ? <div className={styles.err}>⛔ {view.err}</div>
           : null
 
   return (
     <div className={styles.panel}>
       <div className={styles.header}>
-        <strong>{T.title}</strong>
-        <select className={styles.input} value={scope} onChange={(e) => setScope(e.target.value)}>
-          <option value="conversation">{T.scopeConv}</option>
-          <option value="workspace">{T.scopeWs}</option>
-          <option value="machine">{T.scopeMachine}</option>
-        </select>
-        <button className={styles.btn} onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}>
-          {lang === 'zh' ? 'EN' : '中'}
-        </button>
-        <button
-          className={styles.btn}
-          onClick={() => {
-            setShowConfig(!showConfig)
-            if (!showConfig) loadConfig()
-          }}
-        >
-          {T.config}
-        </button>
+        <div className={styles.titleBlock}>
+          <div className={styles.eyebrow}>DSH / LOCAL RUNTIME</div>
+          <strong>{T.title}</strong>
+          <span className={styles.subtitle}>{T.subtitle}</span>
+        </div>
+        <div className={styles.headerActions}>
+          <button className={styles.iconBtn} onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')} aria-label="Toggle language">
+            {lang === 'zh' ? 'EN' : '中'}
+          </button>
+          <button className={styles.iconBtn} onClick={() => { setShowConfig(!showConfig); if (!showConfig) loadConfig() }} aria-label={T.config}>⚙</button>
+          <button className={styles.iconBtn} onClick={scan} aria-label="Refresh">↻</button>
+          <button className={styles.closeBtn} onClick={() => setOpen(false)} aria-label={T.closePanel}>×</button>
+        </div>
+      </div>
+      <div className={styles.scopeLine}>
+        <span className={styles.liveDot} />
+        <span>{T.allLocal}</span>
+        <span className={styles.scopeHint}>· {T.subtitle}</span>
         <span className={styles.spacer} />
-        <label className={styles.muted}>
-          <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} /> {T.auto}
-        </label>
-        <button className={styles.btn} onClick={scan}>↻</button>
-        <button className={styles.btn} onClick={() => setOpen(false)}>{T.close}</button>
+        <label className={styles.autoRefresh}><input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} /> {T.auto}</label>
       </div>
       <input
         className={`${styles.input} ${styles.search}`}
@@ -365,15 +360,18 @@ export function ServiceConsolePanel(): React.ReactElement | null {
                 </div>
               ) : null}
               {expanded === svc.id ? (
-                <div className={styles.detailBox}>
-                  <div className={styles.muted}>id: {svc.id}</div>
-                  <div className={styles.muted}>
-                    pgid: {String(svc.processGroupId ?? '-')} · ppid: {String(svc.parentPid ?? '-')} · startedAt: {String(svc.startedAt ?? '-')}
+                <div className={styles.detailBox} role="region" aria-label={T.detail}>
+                  <div className={styles.detailHeader}><span>{T.detail}</span><span className={styles.detailAccent}>SERVICE RECORD</span></div>
+                  <div className={styles.detailGrid}>
+                    <div><span className={styles.detailLabel}>SERVICE ID</span><code>{svc.id}</code></div>
+                    <div><span className={styles.detailLabel}>PROCESS</span><code>PID {svc.pid} · PGID {String(svc.processGroupId ?? '-')}</code></div>
+                    <div><span className={styles.detailLabel}>PARENT</span><code>PPID {String(svc.parentPid ?? '-')}</code></div>
+                    <div><span className={styles.detailLabel}>STARTED</span><code>{String(svc.startedAt ?? '-')}</code></div>
                   </div>
-                  <div className={styles.muted}>{T.evidence}:</div>
-                  {svc.ownershipEvidence.map((ev, i) => (
-                    <div key={i} className={styles.muted}> · {ev}</div>
-                  ))}
+                  <div className={styles.evidenceBlock}>
+                    <span className={styles.detailLabel}>{T.evidence}</span>
+                    {svc.ownershipEvidence.length ? svc.ownershipEvidence.map((ev, i) => <div key={i} className={styles.evidenceItem}><span>↳</span>{ev}</div>) : <div className={styles.muted}>—</div>}
+                  </div>
                 </div>
               ) : null}
             </div>

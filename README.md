@@ -14,7 +14,9 @@ Single-purpose plugin for the DeepSeek Harness web UI. When the model (or you) s
 - **Ownership & risk** — five-level attribution: `This chat` (matched against the session launch ledger), `Workspace`, `Other local`, `Unknown`, `Protected`.
 - **Control** — graceful stop to the process group, restart with a safe saved launch command. Every action is confirmed twice and re-validated against the current snapshot.
 - **Safeguards** — PID-reuse / fingerprint checks before any signal; unknown and protected services are read-only; force-kill is off by default; no implicit auto-cleanup; command output is redacted.
-- **Scopes, search, config, i18n** — conversation / workspace / machine scopes, keyword filtering, refresh interval / graceful timeout / force-kill settings, zh/en.
+- **All local services** — every listening service on this machine is visible; ownership is shown as a safety signal rather than a hidden category filter.
+- **Search, config, i18n** — keyword filtering, refresh interval / graceful timeout / force-kill settings, zh/en.
+- **DSH-native inspector** — an expanded service record card presents process identity, ports, command, working directory and ownership evidence in the Web UI's token-based visual language.
 
 ## Install
 
@@ -29,6 +31,12 @@ Then refresh the DSH web UI — a `🖥 SC` entry appears in the conversation he
 > Note: a plugin being listed in dsh-market/awesome does not mean its UI auto-appears — this package ships both Host routes and a browser bundle, so after `dsh plugin add` the panel is present. Works on macOS / Linux; Windows is not supported yet.
 
 Alternative — dynamic paste (zero-build, process-local): paste `dynamic/host.js` + `dynamic/client.js` via the dynamic Cordis plugin flow.
+
+## UI preview
+
+![Service Console 0.2.0 — all local services and DSH-style inspector](./assets/service-console-0.2.0.gif)
+
+The preview shows the complete local listening-service list and the expanded inspector card. The ownership badge remains visible as a safety signal, while the list itself is no longer split into conversation/workspace/machine categories.
 
 ## Permissions & safety
 
