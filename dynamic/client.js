@@ -63,7 +63,8 @@ return {
 
     function Panel() {
       const [open, setLocal] = React.useState(store.open)
-      const [lang, setLang] = React.useState('zh')
+      const locale = ctx.get('locale')
+      const [lang, setLang] = React.useState(() => String(locale && locale.getLocale && locale.getLocale().id || '').toLowerCase().startsWith('zh') ? 'zh' : 'en')
       const [query, setQuery] = React.useState('')
       const [showConfig, setShowConfig] = React.useState(false)
       const [configData, setConfigData] = React.useState(null)
@@ -71,11 +72,10 @@ return {
       const [confirming, setConfirming] = React.useState(null)
       const [opResult, setOpResult] = React.useState(null)
       const [expanded, setExpanded] = React.useState(null)
-      const [autoRefresh, setAutoRefresh] = React.useState(true)
       const timeoutRef = React.useRef(null)
-      const intervalRef = React.useRef(null)
       React.useEffect(() => subscribe(setLocal), [])
-      React.useEffect(() => () => { if (timeoutRef.current) timeoutRef.current(); if (intervalRef.current) intervalRef.current() }, [])
+      React.useEffect(() => locale && locale.subscribe ? locale.subscribe(() => setLang(String(locale.getLocale().id || '').toLowerCase().startsWith('zh') ? 'zh' : 'en')) : undefined, [])
+      React.useEffect(() => () => { if (timeoutRef.current) timeoutRef.current() }, [])
 
       const T = TEXTS[lang]
       const scan = () => {
@@ -91,8 +91,7 @@ return {
       }
       React.useEffect(() => {
         if (open && view.phase === 'idle') scan()
-        if (open && autoRefresh) { intervalRef.current = ctx.interval(() => scan(), 5000); return () => { if (intervalRef.current) intervalRef.current(); intervalRef.current = null } }
-      }, [open, autoRefresh])
+      }, [open, view.phase])
       if (!open) return null
 
       const runAction = (svc, action) => { setConfirming({ id: svc.id, action }); setOpResult(null) }
@@ -126,10 +125,8 @@ return {
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' } },
           React.createElement('strong', null, T.title),
           React.createElement('span', { style: Object.assign({}, STYLE.muted, { padding: '3px 6px', border: '1px solid var(--dsw-alias-border-l1, #444)', borderRadius: 4 }) }, T.scopeMachine),
-          React.createElement('button', { onClick: () => setLang(lang === 'zh' ? 'en' : 'zh'), style: STYLE.btn }, lang === 'zh' ? 'EN' : '中'),
           React.createElement('button', { onClick: () => { setShowConfig(!showConfig); if (!showConfig) loadConfig() }, style: STYLE.btn }, T.config),
           React.createElement('span', { style: { flex: 1 } }),
-          React.createElement('label', { style: STYLE.muted }, React.createElement('input', { type: 'checkbox', checked: autoRefresh, onChange: (e) => setAutoRefresh(e.target.checked) }), T.auto),
           React.createElement('button', { onClick: scan, style: STYLE.btn }, '↻'),
           React.createElement('button', { onClick: () => setOpen(false), style: STYLE.btn }, T.close)
         ),

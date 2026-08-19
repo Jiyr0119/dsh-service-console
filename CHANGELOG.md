@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 (2026-08-19)
+
+- 面板仅在打开时扫描，移除自动 / 定时刷新；保留手动刷新按钮。
+- 语言跟随 DSH locale 自动切换，仅支持中文和英文，不再提供语言切换按钮。
+- English README 改为纯英文内容。
+
 ## 0.2.0 (2026-08-19)
 
 - 面板视觉重做：采用 DSH Web 风格的 graphite surface、token 化颜色、工具栏与 inspector detail card。

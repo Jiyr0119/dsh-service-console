@@ -4,7 +4,6 @@ declare const _default: {
         get(name: string): unknown;
         timer: {
             timeout(cb: () => void, ms: number): () => void;
-            interval(cb: () => void, ms: number): () => void;
         };
     }): void;
 };

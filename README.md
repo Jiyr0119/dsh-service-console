@@ -1,10 +1,8 @@
 # DSH Service Console
 
-**English** | [简体中文](./README.zh.md)
+**English**
 
 > A local development service console for DSH: discover listening ports, identify services related to the current conversation or workspace, and safely inspect, stop, or restart them.
-
-**DSH 本地开发服务控制台：发现监听端口，识别与当前对话或工作区相关的服务，并安全地查看、停止和重启。**
 
 Single-purpose plugin for the DeepSeek Harness web UI. When the model (or you) starts a local dev server (`npm run dev`, Vite, Next.js, Uvicorn, Express, Rust, …), Service Console shows it in one place: which ports it listens on, which command and working directory started it, whether it belongs to this conversation or workspace, and whether it is safe to stop or restart.
 
@@ -15,7 +13,8 @@ Single-purpose plugin for the DeepSeek Harness web UI. When the model (or you) s
 - **Control** — graceful stop to the process group, restart with a safe saved launch command. Every action is confirmed twice and re-validated against the current snapshot.
 - **Safeguards** — PID-reuse / fingerprint checks before any signal; unknown and protected services are read-only; force-kill is off by default; no implicit auto-cleanup; command output is redacted.
 - **All local services** — every listening service on this machine is visible; ownership is shown as a safety signal rather than a hidden category filter.
-- **Search, config, i18n** — keyword filtering, refresh interval / graceful timeout / force-kill settings, zh/en.
+- **Search, config, i18n** — keyword filtering, graceful timeout / force-kill settings, and automatic Chinese/English labels from DSH's active locale.
+- **On-demand scanning** — opening the console fetches the current snapshot once; use the refresh button for an explicit rescan. There is no background polling.
 - **DSH-native inspector** — an expanded service record card presents process identity, ports, command, working directory and ownership evidence in the Web UI's token-based visual language.
 
 ## Install

@@ -5,12 +5,19 @@ import styles from './service-console.module.css'
 
 interface TimerLike {
   timeout(callback: () => void, delay: number): () => void
-  interval(callback: () => void, delay: number): () => void
 }
 
 let timerCtx: TimerLike | null = null
+let localeCtx: { getLocale: () => { id?: string }; subscribe: (fn: () => void) => () => void } | null = null
 export function bindTimer(t: TimerLike): void {
   timerCtx = t
+}
+export function bindLocale(locale: { getLocale: () => { id?: string }; subscribe: (fn: () => void) => () => void }): void {
+  localeCtx = locale
+}
+function currentLanguage(): 'zh' | 'en' {
+  const id = String(localeCtx?.getLocale()?.id || '').toLowerCase()
+  return id.startsWith('zh') ? 'zh' : 'en'
 }
 
 // 原生 Client 通过 webServer JSON 路由调用 Host（动态版 host.call 的替代）
@@ -69,14 +76,14 @@ const ERROR_LABEL: Record<string, [string, string]> = {
 const TEXTS = {
   zh: {
     title: 'Service Console', subtitle: '本机监听服务', search: '搜索服务、端口或路径…',
-    auto: '5s', config: '配置', close: '关闭', noSvc: '未发现服务', stop: '停止', restart: '重启', detail: '详情',
+    config: '配置', close: '关闭', noSvc: '未发现服务', stop: '停止', restart: '重启', detail: '详情',
     confirmStop: '确认停止?', confirmRestart: '确认重启?', confirmTxt: '确认对 {name} (pid {pid}) 执行{action}?',
     ok: '确认', cancel: '取消', stopped: '已停止', restarted: '已重启', evidence: '归属证据',
     refreshInterval: '自动刷新间隔(ms)', gracefulTimeout: '优雅超时(ms)', forceKill: '允许强制终止', allLocal: '全部本机服务', servicesFound: '项服务', lastScan: '最近扫描', closePanel: '关闭面板',
   },
   en: {
     title: 'Service Console', subtitle: 'Listening services on this Mac', search: 'Search services, ports, or paths…',
-    auto: '5s', config: 'Config', close: 'Close', noSvc: 'no services found', stop: 'Stop', restart: 'Restart', detail: 'Detail',
+    config: 'Config', close: 'Close', noSvc: 'no services found', stop: 'Stop', restart: 'Restart', detail: 'Detail',
     confirmStop: 'Confirm stop?', confirmRestart: 'Confirm restart?', confirmTxt: 'Run {action} on {name} (pid {pid})?',
     ok: 'OK', cancel: 'Cancel', stopped: 'Stopped', restarted: 'Restarted', evidence: 'Ownership evidence',
     refreshInterval: 'Refresh interval (ms)', gracefulTimeout: 'Graceful timeout (ms)', forceKill: 'Allow force kill', allLocal: 'All local services', servicesFound: 'services', lastScan: 'Last scan', closePanel: 'Close panel',
@@ -114,16 +121,18 @@ interface ScanData {
 
 export function ServiceConsoleEntry(): React.ReactElement {
   const [open, setLocal] = React.useState(store.open)
+  const [lang, setLang] = React.useState<'zh' | 'en'>(currentLanguage())
   React.useEffect(() => subscribe(setLocal), [])
+  React.useEffect(() => localeCtx?.subscribe(() => setLang(currentLanguage())), [])
   return (
     <button
       className={styles.entry}
       onClick={() => setOpen(!store.open)}
-      title="Service Console"
-      aria-label="Service Console"
+      title={lang === 'zh' ? '服务控制台' : 'Service Console'}
+      aria-label={lang === 'zh' ? '服务控制台' : 'Service Console'}
     >
       {open ? '✕' : null}
-      {!open ? <span className={styles.entryLabel}>Services</span> : null}
+      {!open ? <span className={styles.entryLabel}>{lang === 'zh' ? '服务' : 'Services'}</span> : null}
       {!open ? <span className={styles.entryIcon}>🖥</span> : null}
     </button>
   )
@@ -131,7 +140,7 @@ export function ServiceConsoleEntry(): React.ReactElement {
 
 export function ServiceConsolePanel(): React.ReactElement | null {
   const [open, setLocal] = React.useState(store.open)
-  const [lang, setLang] = React.useState<'zh' | 'en'>('zh')
+  const [lang, setLang] = React.useState<'zh' | 'en'>(currentLanguage())
   const [query, setQuery] = React.useState('')
   const [showConfig, setShowConfig] = React.useState(false)
   const [configData, setConfigData] = React.useState<Record<string, unknown> | null>(null)
@@ -141,18 +150,11 @@ export function ServiceConsolePanel(): React.ReactElement | null {
   const [confirming, setConfirming] = React.useState<{ id: string; action: string } | null>(null)
   const [opResult, setOpResult] = React.useState<{ id: string; ok: boolean; text: string } | null>(null)
   const [expanded, setExpanded] = React.useState<string | null>(null)
-  const [autoRefresh, setAutoRefresh] = React.useState(true)
   const timeoutRef = React.useRef<(() => void) | null>(null)
-  const intervalRef = React.useRef<(() => void) | null>(null)
 
   React.useEffect(() => subscribe(setLocal), [])
-  React.useEffect(
-    () => () => {
-      timeoutRef.current?.()
-      intervalRef.current?.()
-    },
-    [],
-  )
+  React.useEffect(() => localeCtx?.subscribe(() => setLang(currentLanguage())), [])
+  React.useEffect(() => () => { timeoutRef.current?.() }, [])
 
   const T: Texts = TEXTS[lang]
 
@@ -184,14 +186,7 @@ export function ServiceConsolePanel(): React.ReactElement | null {
 
   React.useEffect(() => {
     if (open && view.phase === 'idle') scan()
-    if (open && autoRefresh) {
-      intervalRef.current = timerCtx?.interval(() => scan(), 5000) ?? null
-      return () => {
-        intervalRef.current?.()
-        intervalRef.current = null
-      }
-    }
-  }, [open, autoRefresh, scan, view.phase])
+  }, [open, scan, view.phase])
 
   if (!open) return null
 
@@ -251,9 +246,6 @@ export function ServiceConsolePanel(): React.ReactElement | null {
           <span className={styles.subtitle}>{T.subtitle}</span>
         </div>
         <div className={styles.headerActions}>
-          <button className={styles.iconBtn} onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')} aria-label="Toggle language">
-            {lang === 'zh' ? 'EN' : '中'}
-          </button>
           <button className={styles.iconBtn} onClick={() => { setShowConfig(!showConfig); if (!showConfig) loadConfig() }} aria-label={T.config}>⚙</button>
           <button className={styles.iconBtn} onClick={scan} aria-label="Refresh">↻</button>
           <button className={styles.closeBtn} onClick={() => setOpen(false)} aria-label={T.closePanel}>×</button>
@@ -264,7 +256,6 @@ export function ServiceConsolePanel(): React.ReactElement | null {
         <span>{T.allLocal}</span>
         <span className={styles.scopeHint}>· {T.subtitle}</span>
         <span className={styles.spacer} />
-        <label className={styles.autoRefresh}><input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} /> {T.auto}</label>
       </div>
       <input
         className={`${styles.input} ${styles.search}`}
