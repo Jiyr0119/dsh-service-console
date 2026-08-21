@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 (2026-08-21)
+
+- **i18n 修复**：采用 `locale.register` + `locale.bind` 机制（对齐 dsh-workspace-explorer），支持 DSH 语言切换实时跟随。
+- **UI 重设计**：面板改为抽屉式弹窗（动画 + 动态定位），Tab 栏（服务 / 设置），卡片式服务列表。
+- **本地调试**：新增 `docs/local-debugging.md`，记录 symlink 链接本地插件到 3090 环境的方法。
+- **API 直连**：客户端通过 `fetch` 直连 Host HTTP 路由，停止/重启操作不经过 LLM。
+- **卡片优化**：内容自动换行，高度自适应，移除横向滚动条。
+
 ## 0.2.2 (2026-08-19)
 
 - README 增加 License、npm、下载量、Awesome DSH Plugin 与最近提交徽章。
