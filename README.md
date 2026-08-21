@@ -1,6 +1,6 @@
 # DSH Service Console
 
-**English**
+**[English](README.md)** | [中文](README.zh.md)
 
 [![License](https://img.shields.io/github/license/Jiyr0119/dsh-service-console)](LICENSE)
 [![npm](https://img.shields.io/npm/v/@jiyr0119/dsh-service-console)](https://www.npmjs.com/package/@jiyr0119/dsh-service-console)
@@ -42,6 +42,8 @@ Alternative — dynamic paste (zero-build, process-local): paste `dynamic/host.j
 ![Service Console 0.2.0 — all local services and DSH-style inspector](./assets/service-console-0.2.0.gif)
 
 The preview shows the complete local listening-service list and the expanded inspector card. The ownership badge remains visible as a safety signal, while the list itself is no longer split into conversation/workspace/machine categories.
+
+**[→ Interactive Demo](./demo/index.html)** — try the Service Console UI in your browser (no installation required).
 
 ## Permissions & safety
 

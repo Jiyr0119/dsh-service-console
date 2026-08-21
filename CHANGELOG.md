@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 (2026-08-21)
+
+- **README 中英文切换**：修复 README.md 中缺失的语言切换链接。
+- **交互式演示**：新增 `demo/index.html`，提供无需安装的浏览器内 UI 体验。
+- **文档更新**：README 中添加交互式演示链接。
+
 ## 0.3.0 (2026-08-21)
 
 - **i18n 修复**：采用 `locale.register` + `locale.bind` 机制（对齐 dsh-workspace-explorer），支持 DSH 语言切换实时跟随。

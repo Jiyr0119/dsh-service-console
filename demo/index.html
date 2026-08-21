@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DSH Service Console · Interactive Demo</title>
+<meta name="description" content="Interactive mock preview of the DSH Service Console plugin: discover listening ports, identify services, and safely inspect, stop, or restart them." />
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    color: #e8e8e8;
+    background: radial-gradient(1200px 600px at 20% -10%, #1c2430 0%, #0d1117 55%, #080b0f 100%);
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px 40px;
+  }
+
+  /* ---- demo 说明条 ---- */
+  .demo-note {
+    max-width: 960px; width: 100%;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px;
+    padding: 10px 16px;
+    margin-bottom: 14px;
+    font-size: 12.5px;
+    color: #aeb6c2;
+    display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center;
+  }
+  .demo-note b { color: #e8e8e8; }
+  .demo-note a { color: #6ea8fe; text-decoration: none; }
+  .demo-note a:hover { text-decoration: underline; }
+  .demo-note .pill {
+    margin-left: auto; flex: none;
+    background: rgba(65,118,230,.16); color: #9ec5ff;
+    border: 1px solid rgba(65,118,230,.35);
+    border-radius: 999px; padding: 2px 10px; font-size: 11.5px;
+  }
+  .demo-lang {
+    flex: none; cursor: pointer; border: 1px solid rgba(255,255,255,.2); background: transparent;
+    color: #cfd6e0; border-radius: 999px; padding: 2px 10px; font-size: 11.5px;
+  }
+  .demo-lang:hover { border-color: #6ea8fe; color: #fff; }
+
+  /* ---- 舞台:模拟 DSH 窗口 ---- */
+  .demo-stage {
+    position: relative;
+    width: min(960px, 100%);
+    height: min(620px, calc(100dvh - 130px));
+    min-height: 440px;
+    background: #15171a;
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 24px 70px rgba(0,0,0,.55);
+  }
+
+  /* ---- 会话头部(面包屑 + 工具区) ---- */
+  .demo-header {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 5;
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    background: rgba(21,23,26,.92);
+  }
+  .demo-header-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  .demo-header-left .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; flex: none; }
+  .demo-crumbs { display: flex; align-items: center; gap: 4px; font-size: 12.5px; min-width: 0; overflow: hidden; }
+  .demo-crumbs .crumb { color: #9aa3b0; background: transparent; border: 0; padding: 2px 4px; border-radius: 6px; font: inherit; }
+  .demo-crumbs .crumb-sep { color: #565e69; }
+  .demo-crumbs .crumb-current { color: #e8e8e8; font-weight: 600; }
+  .demo-header-utils { display: flex; align-items: center; gap: 8px; flex: none; }
+
+  /* Session log 胶囊(DSH 原生) */
+  .demo-sessionlog {
+    border: 1px solid rgba(255,255,255,.16);
+    min-width: 96px; height: 32px;
+    color: #e8e8e8; font-family: inherit; cursor: default;
+    background: transparent; border-radius: 18px;
+    justify-content: center; align-items: center; gap: 4px;
+    padding: 6px 12px; font-size: 13px; font-weight: 400; line-height: 20px;
+    display: inline-flex; flex: none; opacity: .85;
+  }
+  .demo-sessionlog span, .demo-sessionlog svg { flex: none; }
+  .demo-sessionlog span { white-space: nowrap; }
+  .demo-sessionlog:hover { background: rgba(255,255,255,.07); }
+
+  /* 插件入口胶囊:功能名称 + 图标(与真实插件一致) */
+  .demo-stage .sc-hicon {
+    border: 1px solid rgba(255,255,255,.16);
+    height: 32px;
+    color: #e8e8e8;
+    cursor: pointer;
+    background: transparent;
+    border-radius: 18px;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 20px;
+    display: inline-flex;
+    flex: none;
+  }
+  .demo-stage .sc-hicon:hover { background: rgba(255,255,255,.07); }
+  .demo-stage .sc-hicon.active {
+    background: rgba(65,118,230,.18);
+    border-color: rgba(65,118,230,.45);
+    color: #9ec5ff;
+  }
+  .demo-stage .sc-hicon svg { flex: none; }
+
+  /* ---- Service Console 面板 ---- */
+  .sc-panel {
+    position: absolute;
+    top: 44px;
+    right: 16px;
+    width: 520px;
+    max-height: calc(100% - 60px);
+    background: #1e2025;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.45);
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-8px) scale(.97);
+    pointer-events: none;
+    transition: opacity .18s, transform .18s;
+  }
+  .sc-panel.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  /* 面板头部 */
+  .sc-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    background: rgba(30,32,37,.95);
+  }
+  .sc-head-title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: #e8e8e8;
+  }
+  .sc-head-btn {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 6px;
+    color: #9aa3b0;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .sc-head-btn:hover { background: rgba(255,255,255,.08); color: #e8e8e8; }
+
+  /* Tab 栏 */
+  .sc-tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    background: rgba(30,32,37,.95);
+  }
+  .sc-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 0;
+    font-size: 13px;
+    color: #9aa3b0;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+  }
+  .sc-tab:hover { color: #e8e8e8; }
+  .sc-tab.active {
+    color: #e8e8e8;
+    border-bottom-color: #6ea8fe;
+  }
+  .sc-tab svg { flex: none; }
+
+  /* 搜索栏 */
+  .sc-search {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .sc-search input {
+    width: 100%;
+    padding: 8px 12px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    color: #e8e8e8;
+    font-size: 13px;
+    outline: none;
+  }
+  .sc-search input::placeholder { color: #6b7280; }
+  .sc-search input:focus { border-color: rgba(65,118,230,.5); }
+
+  /* 状态提示 */
+  .sc-status {
+    padding: 8px 14px;
+    font-size: 12px;
+    color: #9aa3b0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .sc-status .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #22c55e;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .4; }
+  }
+
+  /* 服务列表 */
+  .sc-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  .sc-list::-webkit-scrollbar { width: 6px; }
+  .sc-list::-webkit-scrollbar-track { background: transparent; }
+  .sc-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 3px; }
+
+  /* 服务行 */
+  .sc-svc {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    transition: background .1s;
+  }
+  .sc-svc:hover { background: rgba(255,255,255,.04); }
+  .sc-svc:last-child { border-bottom: none; }
+
+  .sc-svc-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .sc-svc-dot { color: #22c55e; font-size: 10px; }
+  .sc-svc-dot.warn { color: #fbbf24; }
+  .sc-svc-dot.err { color: #f87171; }
+  .sc-svc-name { font-weight: 600; font-size: 13px; color: #e8e8e8; }
+  .sc-svc-meta { font-size: 12px; color: #6b7280; }
+  .sc-svc-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+  .sc-svc-badge.chat { color: #22c55e; }
+  .sc-svc-badge.workspace { color: #fbbf24; }
+  .sc-svc-badge.other { color: #94a3b8; }
+  .sc-svc-badge.unknown { color: #f87171; }
+
+  .sc-svc-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 6px;
+    flex: none;
+  }
+  .sc-svc-btn {
+    padding: 4px 10px;
+    font-size: 11px;
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 6px;
+    background: transparent;
+    color: #9aa3b0;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .sc-svc-btn:hover { background: rgba(255,255,255,.08); color: #e8e8e8; }
+  .sc-svc-btn.stop:hover { border-color: rgba(248,113,113,.5); color: #f87171; }
+  .sc-svc-btn.restart:hover { border-color: rgba(34,197,94,.5); color: #22c55e; }
+
+  .sc-svc-sub {
+    margin-top: 4px;
+    font-size: 11px;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 空状态 */
+  .sc-empty {
+    padding: 40px 14px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 13px;
+  }
+
+  /* 设置面板 */
+  .sc-settings {
+    padding: 14px;
+  }
+  .sc-settings-section {
+    font-size: 12px;
+    font-weight: 600;
+    color: #9aa3b0;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 12px;
+  }
+  .sc-settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .sc-settings-label { font-size: 13px; color: #e8e8e8; }
+  .sc-settings-desc { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .sc-settings-input {
+    width: 100px;
+    padding: 6px 10px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 6px;
+    color: #e8e8e8;
+    font-size: 12px;
+    text-align: right;
+  }
+  .sc-settings-switch {
+    width: 36px; height: 20px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.15);
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: background .2s;
+  }
+  .sc-settings-switch.on { background: #6ea8fe; }
+  .sc-settings-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform .2s;
+  }
+  .sc-settings-switch.on::after { transform: translateX(16px); }
+
+  /* ---- 模拟对话内容 ---- */
+  .demo-chat {
+    position: absolute;
+    top: 44px; left: 0; right: 0; bottom: 0;
+    padding: 20px;
+    overflow-y: auto;
+    opacity: .3;
+  }
+  .demo-msg {
+    max-width: 480px;
+    margin-bottom: 16px;
+  }
+  .demo-msg.user { margin-left: auto; }
+  .demo-msg-bubble {
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .demo-msg.assistant .demo-msg-bubble {
+    background: rgba(255,255,255,.08);
+    color: #e8e8e8;
+  }
+  .demo-msg.user .demo-msg-bubble {
+    background: rgba(65,118,230,.2);
+    color: #e8e8e8;
+  }
+  .demo-msg-label {
+    font-size: 11px;
+    color: #6b7280;
+    margin-bottom: 4px;
+  }
+
+  /* ---- 语言切换逻辑 ---- */
+  [data-lang="en"] { display: none; }
+  body.lang-en [data-lang="en"] { display: inline; }
+  body.lang-en [data-lang="zh"] { display: none; }
+  body.lang-en .demo-note [data-lang="en"] { display: inline; }
+  body.lang-en .demo-note [data-lang="zh"] { display: none; }
+</style>
+</head>
+<body>
+  <!-- 说明条 -->
+  <div class="demo-note">
+    <span><b>DSH Service Console</b> — <span data-lang="zh">交互式演示</span><span data-lang="en">Interactive Demo</span></span>
+    <span data-lang="zh">点击右上角 <b>🖥 SC</b> 按钮打开控制台面板</span>
+    <span data-lang="en">Click the <b>🖥 SC</b> button in the header to open the console</span>
+    <a href="https://github.com/Jiyr0119/dsh-service-console" target="_blank">GitHub</a>
+    <button class="demo-lang" onclick="toggleLang()">EN / 中文</button>
+    <span class="pill">v0.3.1</span>
+  </div>
+
+  <!-- 舞台 -->
+  <div class="demo-stage">
+    <!-- 模拟 DSH 会话头部 -->
+    <div class="demo-header">
+      <div class="demo-header-left">
+        <div class="dot"></div>
+        <div class="demo-crumbs">
+          <button class="crumb">workspace</button>
+          <span class="crumb-sep">/</span>
+          <button class="crumb">project</button>
+          <span class="crumb-sep">/</span>
+          <span class="crumb-current">main</span>
+        </div>
+      </div>
+      <div class="demo-header-utils">
+        <button class="demo-sessionlog">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1v6l4 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/></svg>
+          <span>Session Log</span>
+        </button>
+        <button class="sc-hicon" id="scEntry" onclick="togglePanel()">
+          <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+            <rect x="2" y="3" width="12" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/>
+            <path d="M5 7h6M5 10h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+          <span>SC</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 模拟对话内容 -->
+    <div class="demo-chat">
+      <div class="demo-msg assistant">
+        <div class="demo-msg-label">Assistant</div>
+        <div class="demo-msg-bubble">I'll help you set up the development server. Let me start the Vite dev server for you.</div>
+      </div>
+      <div class="demo-msg user">
+        <div class="demo-msg-label">You</div>
+        <div class="demo-msg-bubble">Great, please start it on port 5173.</div>
+      </div>
+      <div class="demo-msg assistant">
+        <div class="demo-msg-label">Assistant</div>
+        <div class="demo-msg-bubble">✅ Dev server started on http://localhost:5173<br/>You can now open the Service Console to monitor it.</div>
+      </div>
+    </div>
+
+    <!-- Service Console 面板 -->
+    <div class="sc-panel" id="scPanel">
+      <!-- 头部 -->
+      <div class="sc-head">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+          <rect x="2" y="3" width="12" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M5 7h6M5 10h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        <span class="sc-head-title">Service Console</span>
+        <button class="sc-head-btn" title="Refresh">
+          <svg viewBox="0 0 16 16" width="12" height="12"><path d="M13.5 8a5.5 5.5 0 1 1-1.61-3.89M13.5 1.5v3h-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+        <button class="sc-head-btn" onclick="togglePanel()" title="Close">
+          <svg viewBox="0 0 16 16" width="12" height="12"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <!-- Tab 栏 -->
+      <div class="sc-tabs">
+        <button class="sc-tab active" onclick="switchTab('services')">
+          <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+            <rect x="2" y="3" width="12" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/>
+            <path d="M5 7h6M5 10h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+          <span data-lang="zh">服务</span>
+          <span data-lang="en">Services</span>
+        </button>
+        <button class="sc-tab" onclick="switchTab('settings')">
+          <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+            <circle cx="8" cy="8" r="2.5" fill="none" stroke="currentColor" stroke-width="1.3"/>
+            <path d="M8 4.3V2.9M8 13.1v-1.4M4.3 8H2.9M13.1 8h-1.4M5.2 5.2L4.1 4.1M11.9 11.9l-1.1-1.1M5.2 10.8L4.1 11.9M11.9 4.1l-1.1 1.1" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+          <span data-lang="zh">设置</span>
+          <span data-lang="en">Settings</span>
+        </button>
+      </div>
+
+      <!-- 服务列表 Tab -->
+      <div id="tabServices">
+        <!-- 搜索栏 -->
+        <div class="sc-search">
+          <input type="text" placeholder="搜索服务、端口或路径…" id="searchInput" oninput="filterServices()" />
+        </div>
+
+        <!-- 状态 -->
+        <div class="sc-status">
+          <div class="dot"></div>
+          <span data-lang="zh">3 项服务</span>
+          <span data-lang="en">3 services</span>
+          <span style="margin-left:auto;font-size:11px;color:#6b7280;">15:32:08</span>
+        </div>
+
+        <!-- 服务列表 -->
+        <div class="sc-list" id="serviceList">
+          <!-- Vite Dev Server -->
+          <div class="sc-svc" data-name="vite" data-port="5173">
+            <div class="sc-svc-main">
+              <span class="sc-svc-dot">●</span>
+              <span class="sc-svc-name">node</span>
+              <span class="sc-svc-meta">:5173 · pid 12345</span>
+              <span class="sc-svc-badge chat" data-lang="zh">本次对话</span>
+              <span class="sc-svc-badge chat" data-lang="en">This chat</span>
+              <span class="sc-svc-badge" style="color:#22c55e;">↻</span>
+              <div class="sc-svc-actions">
+                <button class="sc-svc-btn stop" data-lang="zh">停止</button>
+                <button class="sc-svc-btn stop" data-lang="en">Stop</button>
+                <button class="sc-svc-btn restart" data-lang="zh">重启</button>
+                <button class="sc-svc-btn restart" data-lang="en">Restart</button>
+                <button class="sc-svc-btn" data-lang="zh">详情</button>
+                <button class="sc-svc-btn" data-lang="en">Detail</button>
+              </div>
+            </div>
+            <div class="sc-svc-sub">node_modules/.bin/vite --port 5173</div>
+            <div class="sc-svc-sub">/Users/dev/my-project</div>
+          </div>
+
+          <!-- Next.js Dev Server -->
+          <div class="sc-svc" data-name="next" data-port="3000">
+            <div class="sc-svc-main">
+              <span class="sc-svc-dot">●</span>
+              <span class="sc-svc-name">next-server</span>
+              <span class="sc-svc-meta">:3000 · pid 12890</span>
+              <span class="sc-svc-badge workspace" data-lang="zh">工作区推断</span>
+              <span class="sc-svc-badge workspace" data-lang="en">Workspace</span>
+              <span class="sc-svc-badge" style="color:#22c55e;">↻</span>
+              <div class="sc-svc-actions">
+                <button class="sc-svc-btn stop" data-lang="zh">停止</button>
+                <button class="sc-svc-btn stop" data-lang="en">Stop</button>
+                <button class="sc-svc-btn restart" data-lang="zh">重启</button>
+                <button class="sc-svc-btn restart" data-lang="en">Restart</button>
+                <button class="sc-svc-btn" data-lang="zh">详情</button>
+                <button class="sc-svc-btn" data-lang="en">Detail</button>
+              </div>
+            </div>
+            <div class="sc-svc-sub">next dev --port 3000</div>
+            <div class="sc-svc-sub">/Users/dev/web-app</div>
+          </div>
+
+          <!-- PostgreSQL -->
+          <div class="sc-svc" data-name="postgres" data-port="5432">
+            <div class="sc-svc-main">
+              <span class="sc-svc-dot warn">●</span>
+              <span class="sc-svc-name">postgres</span>
+              <span class="sc-svc-meta">:5432 · pid 9876</span>
+              <span class="sc-svc-badge other" data-lang="zh">本机其他</span>
+              <span class="sc-svc-badge other" data-lang="en">Other local</span>
+              <div class="sc-svc-actions">
+                <button class="sc-svc-btn" data-lang="zh">详情</button>
+                <button class="sc-svc-btn" data-lang="en">Detail</button>
+              </div>
+            </div>
+            <div class="sc-svc-sub">postgres -D /usr/local/var/postgres</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 设置 Tab -->
+      <div id="tabSettings" style="display:none;">
+        <div class="sc-settings">
+          <div class="sc-settings-section" data-lang="zh">通用</div>
+          <div class="sc-settings-section" data-lang="en">General</div>
+
+          <div class="sc-settings-row">
+            <div>
+              <div class="sc-settings-label" data-lang="zh">优雅超时 (ms)</div>
+              <div class="sc-settings-label" data-lang="en">Graceful timeout (ms)</div>
+            </div>
+            <input class="sc-settings-input" type="number" value="3000" />
+          </div>
+
+          <div class="sc-settings-row">
+            <div>
+              <div class="sc-settings-label" data-lang="zh">允许强制终止</div>
+              <div class="sc-settings-label" data-lang="en">Allow force kill</div>
+              <div class="sc-settings-desc" data-lang="zh">优雅超时后发送 SIGKILL</div>
+              <div class="sc-settings-desc" data-lang="en">Send SIGKILL after graceful timeout</div>
+            </div>
+            <button class="sc-settings-switch" onclick="this.classList.toggle('on')"></button>
+          </div>
+
+          <div class="sc-settings-row" style="border:none;">
+            <div class="sc-settings-desc" data-lang="zh">配置在本次会话内生效，重启插件后恢复默认。</div>
+            <div class="sc-settings-desc" data-lang="en">Settings apply for this run; they reset when the plugin restarts.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 语言切换
+    let currentLang = 'zh';
+    function toggleLang() {
+      currentLang = currentLang === 'zh' ? 'en' : 'zh';
+      document.body.classList.toggle('lang-en', currentLang === 'en');
+      // 更新搜索框 placeholder
+      const input = document.getElementById('searchInput');
+      input.placeholder = currentLang === 'zh' ? '搜索服务、端口或路径…' : 'Search services, ports, or paths…';
+    }
+
+    // 面板开关
+    let panelOpen = false;
+    function togglePanel() {
+      panelOpen = !panelOpen;
+      document.getElementById('scPanel').classList.toggle('open', panelOpen);
+      document.getElementById('scEntry').classList.toggle('active', panelOpen);
+    }
+
+    // Tab 切换
+    function switchTab(tab) {
+      document.querySelectorAll('.sc-tab').forEach(t => t.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      document.getElementById('tabServices').style.display = tab === 'services' ? '' : 'none';
+      document.getElementById('tabSettings').style.display = tab === 'settings' ? '' : 'none';
+    }
+
+    // 搜索过滤
+    function filterServices() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      document.querySelectorAll('.sc-svc').forEach(svc => {
+        const name = svc.dataset.name || '';
+        const port = svc.dataset.port || '';
+        const show = name.includes(q) || port.includes(q);
+        svc.style.display = show ? '' : 'none';
+      });
+    }
+
+    // 初始化：默认打开面板
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => togglePanel(), 500);
+    });
+  </script>
+</body>
+</html>

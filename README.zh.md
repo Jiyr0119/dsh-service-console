@@ -45,6 +45,8 @@ dsh plugin --profile web add -w @jiyr0119/dsh-service-console@latest
 
 预览展示本机完整监听服务列表与展开后的检查卡片。归属徽标仍作为安全提示保留，但列表不再按对话 / 工作区 / 本机拆分隐藏服务。
 
+**[→ 交互式演示](./demo/index.html)** — 无需安装即可在浏览器中体验 Service Console 界面。
+
 ## 权限与安全
 
 - Client 不直接传任意 PID 或 Shell 命令，只以 service ID 为目标，Host 在操作前重新校验 PID / 启动时间 / fingerprint。
