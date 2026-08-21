@@ -54,14 +54,18 @@ test('stopService TARGET_GONE：目标不存在时不发信号', async () => {
   assert.equal(calls.killed.length, 0)
 })
 
-test('stopService UNKNOWN_OWNERSHIP：未知归属拒绝', async () => {
+test('stopService unknown 归属：现在允许停止（仅 protected 只读）', async () => {
+  let phase = 0
   const { deps, calls } = makeDeps({
-    buildSnapshot: async () => ({ services: [{ id: 'svc_x', ownership: 'unknown', protected: false, pid: 1, processGroupId: null }] }),
+    buildSnapshot: async () => {
+      phase += 1
+      return { services: phase <= 1 ? [{ id: 'svc_x', ownership: 'unknown', protected: false, pid: 1, processGroupId: null }] : [] }
+    },
   })
   const res = await stopService(deps, 'svc_x', 'graceful')
-  assert.equal(res.ok, false)
-  assert.equal(res.error.code, 'UNKNOWN_OWNERSHIP')
-  assert.equal(calls.killed.length, 0)
+  assert.equal(res.ok, true)
+  assert.equal(res.data.result, 'stopped')
+  assert.ok(calls.killed[0].includes('1'), '应发送 kill 信号')
 })
 
 test('stopService 成功：发 SIGTERM 后服务消失返回 stopped', async () => {

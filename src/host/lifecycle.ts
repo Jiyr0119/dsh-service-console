@@ -24,8 +24,7 @@ export async function stopService(deps: LifecycleDeps, serviceId: string, mode?:
   const svc = s.services.find((x) => x.id === serviceId)
   if (!svc) return err('TARGET_GONE', '该服务已结束，列表已刷新')
   if (svc.protected) return err('PROTECTED_PROCESS', '该进程受保护，不能通过 Service Console 操作')
-  if (svc.ownership === 'unknown') return err('UNKNOWN_OWNERSHIP', '无法确认服务来源，默认不允许控制')
-  // 进程组优先（PRD §7.3：操作前校验已在 buildSnapshot 中重新确认身份）
+  // 进程组优先
   const target = svc.processGroupId ? '-' + svc.processGroupId : String(svc.pid)
   const run = deps.commandRunner || runCommand
   await run('kill -TERM ' + target, 3000)

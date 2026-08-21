@@ -75,7 +75,7 @@ const OWNERSHIP_KEY: Record<string, string> = {
 // ---------- 数据类型 ----------
 interface Listener { host: string; port: number; protocol: string; url?: string | null }
 interface Service {
-  id: string; name: string; pid: number; ownership: string; restartable: boolean
+  id: string; name: string; pid: number; ownership: string; restartable: boolean; protected: boolean
   commandSummary?: string | null; cwd?: string | null; listeners: Listener[]
   processGroupId?: number | null; parentPid?: number | null; startedAt?: number | null
   ownershipEvidence: string[]
@@ -303,7 +303,7 @@ export function ServiceConsolePanel(): React.ReactElement | null {
           const badgeKey = OWNERSHIP_KEY[svc.ownership] ?? 'own.unknown'
           const ports = svc.listeners.map((l) => String(l.port)).join(', ')
           const url = svc.listeners.map((l) => l.url).filter(Boolean)[0] ?? null
-          const canControl = svc.ownership === 'conversation-confirmed' || svc.ownership === 'workspace-inferred' || svc.ownership === 'other-local'
+          const canControl = !svc.protected
           const isConfirming = confirming?.id === svc.id
           const result = opResult?.id === svc.id ? opResult : null
           return (
