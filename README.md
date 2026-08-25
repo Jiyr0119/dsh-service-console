@@ -10,7 +10,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/Jiyr0119/dsh-service-console?style=social)](https://github.com/Jiyr0119/dsh-service-console/stargazers)
 
 <p align="center">
-  ⭐ 顺手留颗 Star，作者能高兴一整天 · <a href="https://github.com/Jiyr0119/dsh-service-console">行，给你一颗 Star</a>
+  ⭐ Drop a Star if it helped — it makes the author's day · <a href="https://github.com/Jiyr0119/dsh-service-console">★ Give a Star</a>
 </p>
 
 > A local development service console for DSH: discover listening ports, identify services related to the current conversation or workspace, and safely inspect, stop, or restart them.
