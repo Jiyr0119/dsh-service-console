@@ -84,6 +84,11 @@ export const ZH_DICT: Record<string, string> = {
   'settings.restore': '恢复默认',
   'settings.note': '配置在本次会话内生效，重启插件后恢复默认。',
   'settings.nav': 'Service Console',
+
+  // Star
+  'star.developer': '开发者',
+  'star.ask': '⭐ 顺手留颗 Star，作者能高兴一整天',
+  'star.cta': '行，给你一颗 Star',
 }
 
 export const EN_DICT: Record<string, string> = {
@@ -168,4 +173,9 @@ export const EN_DICT: Record<string, string> = {
   'settings.restore': 'Reset to defaults',
   'settings.note': 'Settings apply for this run; they reset when the plugin restarts.',
   'settings.nav': 'Service Console',
+
+  // Star
+  'star.developer': 'Developer',
+  'star.ask': '⭐ Drop a Star if it helped — it makes the author\'s day',
+  'star.cta': '★ Give a Star',
 }

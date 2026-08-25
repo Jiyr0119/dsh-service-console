@@ -7,6 +7,7 @@
 [![npm downloads](https://img.shields.io/npm/dt/@jiyr0119/dsh-service-console)](https://www.npmjs.com/package/@jiyr0119/dsh-service-console)
 [![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
 [![Last commit](https://img.shields.io/github/last-commit/Jiyr0119/dsh-service-console)](https://github.com/Jiyr0119/dsh-service-console)
+[![GitHub stars](https://img.shields.io/github/stars/Jiyr0119/dsh-service-console?style=social)](https://github.com/Jiyr0119/dsh-service-console/stargazers)
 
 > A local development service console for DSH: discover listening ports, identify services related to the current conversation or workspace, and safely inspect, stop, or restart them.
 
@@ -77,6 +78,10 @@ npm run build && node --test test/process-inspector.test.mjs   # run a single fi
 ```
 
 Unit tests import the built output under `lib/`, so the sources must be compiled first — `npm test` handles this automatically.
+
+## Star
+
+If you find this plugin useful, please consider giving it a ⭐ star on [GitHub](https://github.com/Jiyr0119/dsh-service-console). Your support helps keep the project alive and motivates further development.
 
 ## License
 

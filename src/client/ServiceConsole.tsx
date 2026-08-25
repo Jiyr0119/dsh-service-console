@@ -153,6 +153,18 @@ export function ServiceConsoleSettings(): React.ReactElement {
         </button>
       </div>
       <div className={styles.setNote}>{tr('settings.note')}</div>
+      <div className={styles.starSection}>
+        <div className={styles.starRow}>
+          <div className={styles.starInfo}>
+            <div className={styles.starLabel}>{tr('star.ask')}</div>
+          </div>
+          <a className={styles.starLink}
+            href="https://github.com/Jiyr0119/dsh-service-console"
+            target="_blank" rel="noreferrer">
+            {tr('star.cta')}
+          </a>
+        </div>
+      </div>
     </div>
   )
 }

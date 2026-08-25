@@ -7,6 +7,7 @@
 [![npm downloads](https://img.shields.io/npm/dt/@jiyr0119/dsh-service-console)](https://www.npmjs.com/package/@jiyr0119/dsh-service-console)
 [![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
 [![Last commit](https://img.shields.io/github/last-commit/Jiyr0119/dsh-service-console)](https://github.com/Jiyr0119/dsh-service-console)
+[![GitHub stars](https://img.shields.io/github/stars/Jiyr0119/dsh-service-console?style=social)](https://github.com/Jiyr0119/dsh-service-console/stargazers)
 
 > A local development service console for DSH: discover listening ports, identify services related to the current conversation or workspace, and safely inspect, stop, or restart them.
 >
@@ -79,6 +80,10 @@ npm run build && node --test test/process-inspector.test.mjs   # 单独运行某
 ```
 
 单元测试直接 import 构建产物（`lib/`），因此需要先编译源码——`npm test` 会自动完成。
+
+## Star
+
+如果觉得这个插件好用，欢迎在 [GitHub](https://github.com/Jiyr0119/dsh-service-console) 上给一个 ⭐ Star，你的支持是持续维护的动力！
 
 ## 许可证
 
