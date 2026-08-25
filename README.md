@@ -9,6 +9,10 @@
 [![Last commit](https://img.shields.io/github/last-commit/Jiyr0119/dsh-service-console)](https://github.com/Jiyr0119/dsh-service-console)
 [![GitHub stars](https://img.shields.io/github/stars/Jiyr0119/dsh-service-console?style=social)](https://github.com/Jiyr0119/dsh-service-console/stargazers)
 
+<p align="center">
+  ⭐ 顺手留颗 Star，作者能高兴一整天 · <a href="https://github.com/Jiyr0119/dsh-service-console">行，给你一颗 Star</a>
+</p>
+
 > A local development service console for DSH: discover listening ports, identify services related to the current conversation or workspace, and safely inspect, stop, or restart them.
 
 Single-purpose plugin for the DeepSeek Harness web UI. When the model (or you) starts a local dev server (`npm run dev`, Vite, Next.js, Uvicorn, Express, Rust, …), Service Console shows it in one place: which ports it listens on, which command and working directory started it, whether it belongs to this conversation or workspace, and whether it is safe to stop or restart.
@@ -78,10 +82,6 @@ npm run build && node --test test/process-inspector.test.mjs   # run a single fi
 ```
 
 Unit tests import the built output under `lib/`, so the sources must be compiled first — `npm test` handles this automatically.
-
-## Star
-
-If you find this plugin useful, please consider giving it a ⭐ star on [GitHub](https://github.com/Jiyr0119/dsh-service-console). Your support helps keep the project alive and motivates further development.
 
 ## License
 
