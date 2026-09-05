@@ -34,6 +34,8 @@ interface CtxLike {
   timer: { timeout(cb: () => void, ms: number): () => void }
 }
 
+let labelFn: (key: string) => string = (k) => k
+
 export default {
   inject: ['slots', 'timer'],
   apply(ctx: CtxLike) {
@@ -53,6 +55,19 @@ export default {
         })
         // 再绑定翻译函数到 ServiceConsole 模块
         bindLocale(locale)
+        // 创建 slot label 翻译函数（locale 变化时自动跟随）
+        const bound = locale.bind(NS)
+        labelFn = (key: string) => {
+          const s = bound(key)
+          return typeof s === 'string' && s !== key ? s : key
+        }
+        locale.subscribe(() => {
+          const b = locale.bind(NS)
+          labelFn = (key: string) => {
+            const s = b(key)
+            return typeof s === 'string' && s !== key ? s : key
+          }
+        })
       } catch (err) {
         console.warn('[dsh-sc] locale init failed, fallback zh', String(err))
       }
@@ -61,7 +76,7 @@ export default {
     // ---------- Header 入口按钮 ----------
     slots.inject('conversation.session.header.utilities', () =>
       slots.register(
-        { name: 'conversation.session.header.utilities', id: 'dsh-service-console', order: 25, label: () => 'Service Console' },
+        { name: 'conversation.session.header.utilities', id: 'dsh-service-console', order: 25, label: () => labelFn('plugin.name') },
         () => React.createElement(ServiceConsoleEntry),
       ),
     )
@@ -77,7 +92,7 @@ export default {
     // ---------- 设置页 ----------
     slots.inject('settings.section', () =>
       slots.register(
-        { name: 'settings.section', id: 'dsh-service-console', order: 35, label: () => 'Service Console' },
+        { name: 'settings.section', id: 'dsh-service-console', order: 35, label: () => labelFn('plugin.name') },
         () => React.createElement(ServiceConsoleSettings),
       ),
     )

@@ -3,6 +3,9 @@
  * 与 dsh-workspace-explorer 共享设计语言：flat key → template string with {vars}
  */
 export const ZH_DICT: Record<string, string> = {
+  // 插件名称
+  'plugin.name': '服务控制台',
+
   // 面板标题
   'panel.title': 'Service Console',
   'panel.subtitle': '本机监听服务',
@@ -92,6 +95,9 @@ export const ZH_DICT: Record<string, string> = {
 }
 
 export const EN_DICT: Record<string, string> = {
+  // 插件名称
+  'plugin.name': 'Service Console',
+
   // 面板标题
   'panel.title': 'Service Console',
   'panel.subtitle': 'Listening services on this machine',
