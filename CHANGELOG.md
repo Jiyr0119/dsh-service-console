@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 (2026-09-30)
+
+- **DSH 0.2.0 适配**：开发依赖升级到 `0.2.0-rc.2`（`dsh-client-locale` / `dsh-client-ui-conversation` / `dsh-client-ui-slots` / `dsh-host-webserver`）；`@deepseek-ai/cordis` peer/dev 范围改为 `~4.0.4`（0.2.0 平台包的 peer 要求）；`dsh.plugin.json` 的 `engines.dsh` 提升为 `>=0.2.0-rc.2`。
+- **动态原型 Host 破坏性变更修复**：DSH 0.2.0 移除了 `ShellExecutor.run()/start()`，`dynamic/host.js` 的 `runCommand` 改用 `shell.execute()` + `execution.result()`；`shell.resolve()` 超时字段改为 `timeoutMs`；stdout/stderr 按 `CollectedOutput { text, truncated }` 读取（原先 `typeof res.stdout === 'string'` 分支永假，静态命令输出一直为空）。
+- **构建配置对齐 0.2.0 module-table seed**：`tsdown.config.ts` 的 `PLATFORM_MODULES` 镜像 0.2.0 `staticModules`——新增 `@deepseek-ai/dsh-client-store`、`@deepseek-ai/dsh-client-ui-dockkit`，移除 0.2.0 中已不存在的 `dsh-client-web-react` / `dsh-client-ui-attachment` / `dsh-client-schema-form` / `dsh-client-runtime`。
+- **清理**：移除未被使用 `@deepseek-ai/dsh-invariants` devDependency；同步 `manifest.json` 版本号（0.2.2 → 0.6.0，按 release checklist 四处同步）。
+
 ## 0.3.1 (2026-08-21)
 
 - **README 中英文切换**：修复 README.md 中缺失的语言切换链接。

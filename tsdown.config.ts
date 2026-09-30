@@ -13,17 +13,21 @@ import { transform } from 'lightningcss'
 
 const ID = '@jiyr0119/dsh-service-console'
 
-/** Loader module-table seed (mirror of apps/web platform.ts). */
+/**
+ * Loader module-table seed — mirror of apps/web `staticModules` as shipped in
+ * DSH 0.2.0. These are the ONLY specifiers a client bundle may leave external;
+ * any other `@deepseek-ai/*` import must be inlined (INLINE_SAFE) or declared
+ * in package.json `dsh.client.external`, otherwise the module table throws at
+ * runtime (`cannot resolve "..." — not a seed word ...`).
+ */
 const PLATFORM_MODULES = [
   'react', 'react/jsx-runtime', 'react-dom', 'react-dom/client', '@deepseek-ai/cordis',
+  '@deepseek-ai/dsh-client-store',
   '@deepseek-ai/dsh-client-ui-slots',
-  '@deepseek-ai/dsh-client-web-react',
   '@deepseek-ai/dsh-client-ui-primitives',
-  '@deepseek-ai/dsh-client-ui-attachment',
-  '@deepseek-ai/dsh-client-schema-form',
+  '@deepseek-ai/dsh-client-ui-dockkit',
 ] as const
-const RUNTIME_EXEMPTION = '@deepseek-ai/dsh-client-runtime/client'
-const CLIENT_EXTERNALS: readonly string[] = [...PLATFORM_MODULES, RUNTIME_EXEMPTION]
+const CLIENT_EXTERNALS: readonly string[] = [...PLATFORM_MODULES]
 
 const CSS_PREFIX = '\0dsh-css:'
 const CSS_SUFFIX = '.mjs'

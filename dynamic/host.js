@@ -37,13 +37,17 @@ return {
 
     async function runCommand(command, timeoutMs) {
       try {
-        const spec = shell.resolve({ command, timeout: timeoutMs || 5000 })
-        const res = await shell.run(spec)
-        const stdout = typeof res.stdout === 'string' ? res.stdout
-          : typeof res.output === 'string' ? res.output
-          : typeof res.text === 'string' ? res.text : ''
-        const stderr = typeof res.stderr === 'string' ? res.stderr : ''
-        const code = res.code !== undefined ? res.code : res.exitCode !== undefined ? res.exitCode : null
+        // DSH 0.2.0：ShellExecutor.run()/start() 已移除，统一走 execute() + result()；
+        // 结果的 stdout/stderr 是 CollectedOutput（{ text, truncated }）而非字符串。
+        const spec = shell.resolve({ command, timeoutMs: timeoutMs || 5000 })
+        const execution = await shell.execute(spec)
+        const res = await execution.result()
+        const pick = (v) => typeof v === 'string' ? v
+          : v && typeof v.text === 'string' ? v.text : ''
+        const stdout = pick(res.stdout)
+        const stderr = pick(res.stderr)
+        const code = res.exitCode !== undefined && res.exitCode !== null ? res.exitCode
+          : res.code !== undefined ? res.code : null
         return { stdout, stderr, code }
       } catch (e) { return { stdout: '', stderr: String((e && e.message) || e), code: null } }
     }
