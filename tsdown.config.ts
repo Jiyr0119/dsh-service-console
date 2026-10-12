@@ -45,6 +45,7 @@ const nodeLib: UserConfig = {
     'src/host/config.ts',
     'src/host/ledger.ts',
     'src/host/lifecycle.ts',
+    'src/host/protection.ts',
     'src/host/service-registry.ts',
   ],
   outDir: 'lib',

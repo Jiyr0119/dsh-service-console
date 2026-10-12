@@ -1,8 +1,11 @@
 /**
  * dsh-service-console — i18n 词典（对齐 DSH locale.register 机制）
  * 与 dsh-workspace-explorer 共享设计语言：flat key → template string with {vars}
+ *
+ * 类型化：ZH_DICT 的键集是词典权威（ConsoleKey）；EN_DICT 必须同键集
+ * （satisfies Record<ConsoleKey, string> —— 缺键/多键都是编译错误）。
  */
-export const ZH_DICT: Record<string, string> = {
+export const ZH_DICT = {
   // 插件名称
   'plugin.name': '服务控制台',
 
@@ -92,9 +95,12 @@ export const ZH_DICT: Record<string, string> = {
   'star.developer': '开发者',
   'star.ask': '⭐ 顺手留颗 Star，作者能高兴一整天',
   'star.cta': '行，给你一颗 Star',
-}
+} satisfies Record<string, string>
 
-export const EN_DICT: Record<string, string> = {
+/** 词典键权威类型：tr() 与 LocaleNamespaceMap 合并共用（键名拼写错误=编译错误） */
+export type ConsoleKey = keyof typeof ZH_DICT
+
+export const EN_DICT = {
   // 插件名称
   'plugin.name': 'Service Console',
 
@@ -184,4 +190,4 @@ export const EN_DICT: Record<string, string> = {
   'star.developer': 'Developer',
   'star.ask': '⭐ Drop a Star if it helped — it makes the author\'s day',
   'star.cta': '★ Give a Star',
-}
+} satisfies Record<ConsoleKey, string>

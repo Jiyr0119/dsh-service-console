@@ -6,6 +6,8 @@ export interface Listener {
     port: number;
     protocol: string;
     url?: string | null;
+    /** 监听该端口的进程用户（lsof USER），用于高权限提示 */
+    user?: string | null;
 }
 export interface Service {
     id: string;

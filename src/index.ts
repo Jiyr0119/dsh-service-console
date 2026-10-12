@@ -58,7 +58,7 @@ export default {
     const deps = {
       timer,
       config,
-      buildSnapshot: () => buildSnapshot(ledger.list, workspaces()),
+      buildSnapshot: snapshot,
       ledgerList: () => ledger.list,
       logAction,
     }
@@ -81,16 +81,31 @@ export default {
       return workspacesCache
     }
 
+    // P0-1 受保护目标：DSH Web 控制台端口（停止它会断开当前界面）+ 插件所在宿主进程
+    function protectionGuard(): { protectedPorts?: number[]; protectedPids?: number[] } {
+      const guard: { protectedPorts?: number[]; protectedPids?: number[] } = { protectedPids: [process.pid] }
+      try {
+        const port = Number(ctx.webServer?.port)
+        if (Number.isFinite(port) && port > 0) guard.protectedPorts = [port]
+      } catch {
+        /* webServer 不可用时仅保护宿主进程 */
+      }
+      return guard
+    }
+    function snapshot() {
+      return buildSnapshot(ledger.list, workspaces(), undefined, protectionGuard())
+    }
+
     // 路由处理（统一信封 { ok, data | error }）
     const routes: { path: string; handler: (args: Record<string, unknown>) => Promise<ApiResult> }[] = [
       {
         path: '/dsh-sc/api/services/scan',
-        handler: async () => ({ ok: true, data: await buildSnapshot(ledger.list, workspaces()) }),
+        handler: async () => ({ ok: true, data: await snapshot() }),
       },
       {
         path: '/dsh-sc/api/services/detail',
         handler: async (args) => {
-          const s = await buildSnapshot(ledger.list, workspaces())
+          const s = await snapshot()
           const svc = s.services.find((x) => x.id === String(args.serviceId ?? ''))
           if (!svc) return { ok: false, error: { code: 'TARGET_GONE', message: '服务不存在' } }
           return { ok: true, data: { ...svc, recentActions: actionLog.filter((a) => a.serviceId === svc.id).slice(-10) } }

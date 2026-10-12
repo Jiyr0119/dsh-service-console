@@ -8,33 +8,32 @@
  */
 import * as React from 'react'
 import styles from './service-console.module.css'
+import type { ConsoleKey } from './dictionaries'
 
 // ---------- DSH 服务注入 ----------
 interface TimerLike {
   timeout(callback: () => void, delay: number): () => void
 }
-interface LocaleLike {
-  getLocale(): { id?: string }
-  subscribe(fn: () => void): () => void
-  bind(ns: string): (key: string, vars?: Record<string, string | number>) => string
-}
 
 let timerCtx: TimerLike | null = null
-let localeCtx: LocaleLike | null = null
-let tr: (key: string, vars?: Record<string, string | number>) => string = (k) => k
+let localeSubscribe: ((fn: () => void) => () => void) | null = null
+
+/** 类型化翻译函数：key 为词典键（拼写错误=编译错误），params 替换 {vars}（locale 运行时完成） */
+type Translate = (key: ConsoleKey, params?: Record<string, unknown>) => string
+let tr: Translate = (k) => k
 
 export function bindTimer(t: TimerLike): void { timerCtx = t }
-export function bindLocale(locale: LocaleLike): void {
-  localeCtx = locale
-  try {
-    const bound = locale.bind('dsh-service-console')
-    tr = (key: string, vars?: Record<string, string | number>): string => {
-      let s = bound(key)
-      if (typeof s !== 'string' || s === key) s = key
-      if (vars) for (const vk in vars) s = s.split(`{${vk}}`).join(String(vars[vk]))
-      return s
-    }
-  } catch { /* fallback: tr returns key */ }
+export function bindLocale(locale: { t: Translate; subscribe(fn: () => void): () => void }): void {
+  tr = locale.t
+  localeSubscribe = locale.subscribe
+}
+
+/** 动态错误码 → 词典键（err.<CODE>）；未收录的码回退 fallback */
+function trError(code: string, fallback: string): string {
+  if (!code) return fallback
+  const key = ('err.' + code) as ConsoleKey
+  const s = tr(key)
+  return s === key ? fallback : s
 }
 
 // ---------- Host API（fetch 直连，不经过 LLM） ----------
@@ -57,19 +56,26 @@ function toggleOpen(): void { setOpen(!store.open) }
 function closePanel(): void { setOpen(false) }
 
 // ---------- 归属 badge 色彩 ----------
-const OWNERSHIP_COLOR: Record<string, string> = {
+type OwnershipLevel = 'conversation-confirmed' | 'workspace-inferred' | 'other-local' | 'unknown' | 'protected'
+const OWNERSHIP_COLOR: Record<OwnershipLevel, string> = {
   'conversation-confirmed': 'var(--dsw-alias-state-success-primary, #4ade80)',
   'workspace-inferred': 'var(--dsw-alias-state-warn-primary, #fbbf24)',
   'other-local': 'var(--dsw-alias-label-secondary, #94a3b8)',
   unknown: 'var(--dsw-alias-state-error-primary, #f87171)',
   protected: 'var(--dsw-alias-state-error-primary, #f87171)',
 }
-const OWNERSHIP_KEY: Record<string, string> = {
+const OWNERSHIP_KEY: Record<OwnershipLevel, ConsoleKey> = {
   'conversation-confirmed': 'own.conversation',
   'workspace-inferred': 'own.workspace',
   'other-local': 'own.other',
   unknown: 'own.unknown',
   protected: 'own.protected',
+}
+/** API 字符串 → 归属级别（未知值降级为 unknown，不炸 UI） */
+function ownershipLevel(v: string): OwnershipLevel {
+  return v === 'conversation-confirmed' || v === 'workspace-inferred' || v === 'other-local' || v === 'protected'
+    ? v
+    : 'unknown'
 }
 
 // ---------- 数据类型 ----------
@@ -191,7 +197,7 @@ export function ServiceConsolePanel(): React.ReactElement | null {
 
   React.useEffect(() => subscribeOpen(setOn), [])
   // 订阅语言变化，触发重渲染
-  React.useEffect(() => localeCtx?.subscribe(() => setLangTick((n) => n + 1)), [])
+  React.useEffect(() => localeSubscribe?.(() => setLangTick((n) => n + 1)), [])
 
   // 打开/收起动画
   React.useEffect(() => {
@@ -263,7 +269,7 @@ export function ServiceConsolePanel(): React.ReactElement | null {
         if (res?.ok) setOpResult({ id: svc.id, ok: true, text: action === 'stop' ? tr('result.stopped') : tr('result.restarted') })
         else {
           const code = res?.error?.code ?? ''
-          setOpResult({ id: svc.id, ok: false, text: tr('err.' + code) || res?.error?.message || tr('result.error') })
+          setOpResult({ id: svc.id, ok: false, text: trError(code, res?.error?.message || tr('result.error')) })
         }
         scan()
       })
@@ -311,8 +317,9 @@ export function ServiceConsolePanel(): React.ReactElement | null {
         <div className={styles.empty}>{tr('svc.noSvc')}</div>
       ) : (
         rows.map((svc) => {
-          const badgeColor = OWNERSHIP_COLOR[svc.ownership] ?? OWNERSHIP_COLOR.unknown
-          const badgeKey = OWNERSHIP_KEY[svc.ownership] ?? 'own.unknown'
+          const level = ownershipLevel(svc.ownership)
+          const badgeColor = OWNERSHIP_COLOR[level]
+          const badgeKey = OWNERSHIP_KEY[level]
           const ports = svc.listeners.map((l) => String(l.port)).join(', ')
           const url = svc.listeners.map((l) => l.url).filter(Boolean)[0] ?? null
           const canControl = !svc.protected
@@ -339,7 +346,7 @@ export function ServiceConsolePanel(): React.ReactElement | null {
                     {isConfirming && confirming!.action === 'stop' ? tr('confirm.stop') : tr('action.stop')}
                   </button>
                 ) : null}
-                {svc.restartable ? (
+                {svc.restartable && canControl ? (
                   <button type="button" className={styles.rowBtn}
                     onClick={(e) => { e.stopPropagation(); runAction(svc, 'restart') }}>
                     {isConfirming && confirming!.action === 'restart' ? tr('confirm.restart') : tr('action.restart')}

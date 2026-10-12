@@ -126,6 +126,8 @@ export interface RawListener {
   host: string
   port: number
   protocol: string
+  /** lsof USER 列（如 root/jonathan），用于高权限受保护判定；解析失败为 null */
+  user: string | null
 }
 
 export interface RawScan {
@@ -191,7 +193,7 @@ export async function scanRaw(commandRunner: CommandRunner = runCommand): Promis
   for (const r of rows) {
     const { host, port } = parseAddress(r.address)
     if (host === null || port === null) continue
-    listeners.push({ pid: r.pid, host, port, protocol: r.type === 'IPv6' ? 'tcp6' : 'tcp' })
+    listeners.push({ pid: r.pid, host, port, protocol: r.type === 'IPv6' ? 'tcp6' : 'tcp', user: r.user || null })
   }
   return { listeners, procs, partialWarnings }
 }

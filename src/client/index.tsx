@@ -2,98 +2,101 @@
  * dsh-service-console — Client 入口（原生包 v2）
  *
  * 架构对齐 dsh-workspace-explorer:
- * - 通过 locale.register + locale.bind 实现国际化（而非硬编码 TEXTS）
+ * - 通过 locale.register + locale.bind 实现国际化（词典键编译期校验）
  * - 通过 webServer JSON 路由调用 Host（fetch 直连，不走 host.call / LLM）
  * - 注册 DSH 设置壳的 settings.section 页
  * - 注册 shell.overlay 抽屉面板 + header 入口按钮
+ *
+ * 类型化（P0-5）：ctx 来自 @deepseek-ai/cordis，ctx.slots / ctx.locale /
+ * SlotMap 键均由平台类型包增广；平台包仅 type-only 导入，构建时擦除。
  */
-import * as React from 'react'
-import { ServiceConsoleEntry, ServiceConsolePanel, ServiceConsoleSettings, bindTimer, bindLocale } from './ServiceConsole'
-import { ZH_DICT, EN_DICT } from './dictionaries'
+import type { Context } from '@deepseek-ai/cordis'
+import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+// 平台类型增广（SlotMap / Context.slots / Context.locale）——type-only，不进 bundle
+import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import type {} from '@deepseek-ai/dsh-client-locale/client'
+import {
+  ServiceConsoleEntry,
+  ServiceConsolePanel,
+  ServiceConsoleSettings,
+  bindTimer,
+  bindLocale,
+} from './ServiceConsole'
+import { ZH_DICT, EN_DICT, type ConsoleKey } from './dictionaries'
+
+// 把本插件词典并入平台 LocaleNamespaceMap：register(ns, dicts) 与 bind(ns)
+// 从此按 ConsoleKey 做键域校验（缺键/多键/拼写错误都是编译错误）。
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface LocaleNamespaceMap {
+    'dsh-service-console': ConsoleKey
+  }
+}
 
 const NS = 'dsh-service-console'
 
-interface LocaleLike {
-  register(ns: string, locale: string, dict: Record<string, string>): () => void
-  bind(ns: string): (key: string, vars?: Record<string, string | number>) => string
-  getLocale(): { id?: string }
-  subscribe(fn: () => void): () => void
+/** cordis-plugin-timer 未随本包安装类型；客户端只用 timeout 一种能力，结构化声明 */
+interface TimerLike {
+  timeout(callback: () => void, delay: number): () => void
 }
 
-interface SlotsLike {
-  inject(name: string, fn: () => unknown): void
-  register(
-    options: { name: string; id: string; order?: number; label?: string | (() => string) },
-    component: (props: never) => React.ReactNode,
-  ): unknown
-}
+type ClientContext = Context & { timer: TimerLike }
 
-interface CtxLike {
-  get(name: string): unknown
-  effect(fn: () => () => void): void
-  timer: { timeout(cb: () => void, ms: number): () => void }
+let labelT: TranslateNS<'dsh-service-console'> | null = null
+function labelFn(key: ConsoleKey): string {
+  return labelT ? labelT(key) : key
 }
-
-let labelFn: (key: string) => string = (k) => k
 
 export default {
-  inject: ['slots', 'timer'],
-  apply(ctx: CtxLike) {
+  inject: ['slots', 'timer', 'locale'],
+  apply(ctx: ClientContext) {
     bindTimer(ctx.timer)
-    const slots = ctx.get('slots') as SlotsLike | undefined
-    if (slots === undefined) return
 
-    // ---------- i18n: locale.register + locale.bind（对齐 workspace-explorer） ----------
-    const locale = ctx.get('locale') as LocaleLike | undefined
-    if (locale !== undefined) {
-      try {
-        // 先注册词典到 DSH locale 系统
-        ctx.effect(() => {
-          const d1 = locale.register(NS, 'zh', ZH_DICT)
-          const d2 = locale.register(NS, 'en', EN_DICT)
-          return () => { d1(); d2() }
-        })
-        // 再绑定翻译函数到 ServiceConsole 模块
-        bindLocale(locale)
-        // 创建 slot label 翻译函数（locale 变化时自动跟随）
-        const bound = locale.bind(NS)
-        labelFn = (key: string) => {
-          const s = bound(key)
-          return typeof s === 'string' && s !== key ? s : key
-        }
-        locale.subscribe(() => {
-          const b = locale.bind(NS)
-          labelFn = (key: string) => {
-            const s = b(key)
-            return typeof s === 'string' && s !== key ? s : key
-          }
-        })
-      } catch (err) {
-        console.warn('[dsh-sc] locale init failed, fallback zh', String(err))
-      }
-    }
+    // ---------- i18n: 一次注册双语词典 + 绑定类型化翻译函数 ----------
+    const locale = ctx.locale
+    ctx.effect(() => locale.register(NS, { zh: ZH_DICT, en: EN_DICT }))
+    labelT = locale.bind(NS)
+    bindLocale({ t: labelT, subscribe: (fn) => locale.subscribe(fn) })
 
     // ---------- Header 入口按钮 ----------
-    slots.inject('conversation.session.header.utilities', () =>
-      slots.register(
-        { name: 'conversation.session.header.utilities', id: 'dsh-service-console', order: 25, label: () => labelFn('plugin.name') },
-        () => React.createElement(ServiceConsoleEntry),
+    ctx.effect(() =>
+      ctx.slots.inject('conversation.session.header.utilities', () =>
+        ctx.slots.register(
+          {
+            name: 'conversation.session.header.utilities',
+            id: 'dsh-service-console',
+            order: 25,
+            label: () => labelFn('plugin.name'),
+          },
+          ServiceConsoleEntry,
+        ),
       ),
     )
 
     // ---------- Shell overlay 抽屉面板 ----------
-    slots.inject('shell.overlay', () =>
-      slots.register(
-        { name: 'shell.overlay', id: 'dsh-service-console-panel' },
-        () => React.createElement(ServiceConsolePanel),
+    ctx.effect(() =>
+      ctx.slots.inject('shell.overlay', () =>
+        ctx.slots.register(
+          { name: 'shell.overlay', id: 'dsh-service-console-panel' },
+          ServiceConsolePanel,
+        ),
       ),
     )
 
     // ---------- 设置页 ----------
-    slots.inject('settings.section', () =>
-      slots.register(
-        { name: 'settings.section', id: 'dsh-service-console', order: 35, label: () => labelFn('plugin.name') },
-        () => React.createElement(ServiceConsoleSettings),
+    ctx.effect(() =>
+      ctx.slots.inject('settings.section', () =>
+        ctx.slots.register(
+          {
+            name: 'settings.section',
+            id: 'dsh-service-console',
+            order: 35,
+            label: () => labelFn('plugin.name'),
+          },
+          ServiceConsoleSettings,
+        ),
       ),
     )
   },

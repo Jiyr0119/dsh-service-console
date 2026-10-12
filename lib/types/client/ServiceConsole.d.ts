@@ -7,18 +7,17 @@
  * - UI: 抽屉式面板 + Tab 栏（服务 / 设置），对标 workspace-explorer 视觉风格
  */
 import * as React from 'react';
+import type { ConsoleKey } from './dictionaries';
 interface TimerLike {
     timeout(callback: () => void, delay: number): () => void;
 }
-interface LocaleLike {
-    getLocale(): {
-        id?: string;
-    };
-    subscribe(fn: () => void): () => void;
-    bind(ns: string): (key: string, vars?: Record<string, string | number>) => string;
-}
+/** 类型化翻译函数：key 为词典键（拼写错误=编译错误），params 替换 {vars}（locale 运行时完成） */
+type Translate = (key: ConsoleKey, params?: Record<string, unknown>) => string;
 export declare function bindTimer(t: TimerLike): void;
-export declare function bindLocale(locale: LocaleLike): void;
+export declare function bindLocale(locale: {
+    t: Translate;
+    subscribe(fn: () => void): () => void;
+}): void;
 export declare function ServiceConsoleEntry(): React.ReactElement;
 export declare function ServiceConsoleSettings(): React.ReactElement;
 export declare function ServiceConsolePanel(): React.ReactElement | null;

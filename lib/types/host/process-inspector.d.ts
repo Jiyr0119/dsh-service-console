@@ -42,6 +42,8 @@ export interface RawListener {
     host: string;
     port: number;
     protocol: string;
+    /** lsof USER 列（如 root/jonathan），用于高权限受保护判定；解析失败为 null */
+    user: string | null;
 }
 export interface RawScan {
     listeners: RawListener[];

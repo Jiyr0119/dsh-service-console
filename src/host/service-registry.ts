@@ -4,6 +4,7 @@ import type { LedgerEntry, Service, Snapshot, WorkspaceLike } from './types'
 import { scanRaw, runCommand, type CommandRunner } from './process-inspector'
 import { redact } from './redaction'
 import { classifyOwnership } from './ownership'
+import { classifyProtection, type ProtectionGuard } from './protection'
 
 function sha256Hex(input: string): string {
   return createHash('sha256').update(input).digest('hex')
@@ -18,14 +19,15 @@ export async function buildSnapshot(
   ledgers: LedgerEntry[],
   workspaces: WorkspaceLike[],
   commandRunner: CommandRunner = runCommand,
+  guard: ProtectionGuard = {},
 ): Promise<Snapshot> {
   const raw = await scanRaw(commandRunner)
 
-  // 按 PID 聚合 listener
-  const byPid = new Map<number, { host: string; port: number; protocol: string }[]>()
+  // 按 PID 聚合 listener（保留 user，供受保护/高权限判定）
+  const byPid = new Map<number, { host: string; port: number; protocol: string; user: string | null }[]>()
   for (const l of raw.listeners) {
     if (!byPid.has(l.pid)) byPid.set(l.pid, [])
-    byPid.get(l.pid)!.push({ host: l.host, port: l.port, protocol: l.protocol })
+    byPid.get(l.pid)!.push({ host: l.host, port: l.port, protocol: l.protocol, user: l.user })
   }
 
   const services: Service[] = []
@@ -38,10 +40,11 @@ export async function buildSnapshot(
     const serviceId = 'svc_' + sha256Hex(fpSource).slice(0, 12)
     const cls = classifyOwnership({ cwd, command, startedAt }, ledgers, workspaces)
     const listenersFinal = listeners.map((l) => ({ ...l, url: isLocalhost(l.host) ? 'http://localhost:' + l.port : null }))
+    const prot = classifyProtection({ pid, name: proc?.name, command, cwd, listeners }, guard)
     services.push({
       id: serviceId,
       status: 'running',
-      ownership: cls.ownership,
+      ownership: prot.protected ? 'protected' : cls.ownership,
       confidence: cls.confidence,
       name: proc?.name || 'unknown',
       pid,
@@ -52,8 +55,8 @@ export async function buildSnapshot(
       startedAt,
       listeners: listenersFinal,
       restartable: !!cls.ledgerEntry,
-      protected: false,
-      ownershipEvidence: cls.evidence,
+      protected: prot.protected,
+      ownershipEvidence: prot.protected ? [...prot.evidence, ...cls.evidence] : cls.evidence,
       fingerprint: 'sha256:' + sha256Hex(fpSource),
     })
   }
