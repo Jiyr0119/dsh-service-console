@@ -1,9 +1,11 @@
 // dsh-service-console · Host 入口：webServer JSON 路由（逐条注册）+ tools/result 台账监听
 import type { Context } from 'cordis'
 import type { WebServer } from '@deepseek-ai/dsh-host-webserver'
+import type { ToolRuntime } from '@deepseek-ai/dsh-tools'
 import { SessionLedger } from './host/ledger'
 import { buildSnapshot } from './host/service-registry'
 import { stopService, restartService } from './host/lifecycle'
+import { buildServiceTool } from './host/service-tool'
 import { DEFAULT_CONFIG, CONFIG_LIMITS, validateConfigPatch, loadConfigFromFile, saveConfigToFile } from './host/config'
 import type { ActionRecord, ApiResult, Config } from './host/types'
 
@@ -158,6 +160,21 @@ export default {
           }
         },
       })
+    }
+
+    // P0-2 模型工具（只读 service_list）：tools 服务可选——没有 dsh-tools 的
+    // 组合下跳过注册，插件其余功能（API/面板）不受影响
+    const tools = ctx.get('tools') as ToolRuntime | undefined
+    if (tools) {
+      ctx.effect(() => {
+        const off = tools.register(buildServiceTool({ snapshot }))
+        if (process.env.DSH_SC_DEBUG === '1') {
+          console.log(`[dsh-sc] service_list registered: ${String(Boolean(tools.get('service_list')))}`)
+        }
+        return off
+      })
+    } else if (process.env.DSH_SC_DEBUG === '1') {
+      console.log('[dsh-sc] tools service absent — service_list not registered')
     }
   },
 }

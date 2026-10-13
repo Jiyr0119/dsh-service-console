@@ -47,6 +47,7 @@ const nodeLib: UserConfig = {
     'src/host/lifecycle.ts',
     'src/host/protection.ts',
     'src/host/service-registry.ts',
+    'src/host/service-tool.ts',
   ],
   outDir: 'lib',
   format: ['esm'],
@@ -55,6 +56,8 @@ const nodeLib: UserConfig = {
   fixedExtension: false,
   dts: false,
   clean: true,
+  // 平台包（cordis / dsh-* 等）永远来自宿主运行时，绝不打进插件产物
+  external: [/^@deepseek-ai\//, /^cordis$/],
 }
 
 const client: UserConfig = {
