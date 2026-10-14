@@ -26,6 +26,7 @@ export declare const ZH_DICT: {
     'action.detail': string;
     'action.confirm': string;
     'action.cancel': string;
+    'action.pending': string;
     'confirm.stop': string;
     'confirm.restart': string;
     'confirm.txt': string;
@@ -37,6 +38,10 @@ export declare const ZH_DICT: {
     'own.other': string;
     'own.unknown': string;
     'own.protected': string;
+    'scope.conversation': string;
+    'scope.workspace': string;
+    'scope.machine': string;
+    'scope.machineWarn': string;
     'detail.title': string;
     'detail.serviceRecord': string;
     'detail.serviceId': string;
@@ -57,6 +62,13 @@ export declare const ZH_DICT: {
     'tab.settings': string;
     'settings.title': string;
     'settings.general': string;
+    'settings.refreshInterval': string;
+    'settings.refresh.desc': string;
+    'settings.refreshOff': string;
+    'settings.refreshN': string;
+    'settings.defaultScope': string;
+    'settings.showUnknown': string;
+    'settings.showUnknown.desc': string;
     'settings.gracefulTimeout': string;
     'settings.forceKill': string;
     'settings.forceKill.desc': string;
@@ -90,6 +102,7 @@ export declare const EN_DICT: {
     'action.detail': string;
     'action.confirm': string;
     'action.cancel': string;
+    'action.pending': string;
     'confirm.stop': string;
     'confirm.restart': string;
     'confirm.txt': string;
@@ -101,6 +114,10 @@ export declare const EN_DICT: {
     'own.other': string;
     'own.unknown': string;
     'own.protected': string;
+    'scope.conversation': string;
+    'scope.workspace': string;
+    'scope.machine': string;
+    'scope.machineWarn': string;
     'detail.title': string;
     'detail.serviceRecord': string;
     'detail.serviceId': string;
@@ -121,6 +138,13 @@ export declare const EN_DICT: {
     'tab.settings': string;
     'settings.title': string;
     'settings.general': string;
+    'settings.refreshInterval': string;
+    'settings.refresh.desc': string;
+    'settings.refreshOff': string;
+    'settings.refreshN': string;
+    'settings.defaultScope': string;
+    'settings.showUnknown': string;
+    'settings.showUnknown.desc': string;
     'settings.gracefulTimeout': string;
     'settings.forceKill': string;
     'settings.forceKill.desc': string;

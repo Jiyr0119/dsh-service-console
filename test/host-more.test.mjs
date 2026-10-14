@@ -11,9 +11,13 @@ const { buildSnapshot } = await import('../lib/host/service-registry.js')
 // ---------- config ----------
 test('validateConfigPatch 合法/非法更新', () => {
   assert.equal(validateConfigPatch({ refreshInterval: 10000 }).ok, true)
+  assert.equal(validateConfigPatch({ refreshInterval: 0 }).ok, true) // 关闭轮询
   assert.equal(validateConfigPatch({ forceKill: true }).ok, true)
+  assert.equal(validateConfigPatch({ showUnknown: false }).ok, true)
   assert.equal(validateConfigPatch({ unknownKey: 1 }).ok, false)
   assert.equal(validateConfigPatch({ refreshInterval: 100 }).ok, false) // 越界
+  assert.equal(validateConfigPatch({ refreshInterval: 3000 }).ok, false) // 非 PRD 档位（2/5/10/30s 或关闭）
+  assert.equal(validateConfigPatch({ refreshInterval: 60000 }).ok, false) // 超档位
   assert.equal(validateConfigPatch({ forceKill: 'yes' }).ok, false) // 类型错
   assert.equal(validateConfigPatch({ defaultScope: 'machine' }).ok, true)
 })

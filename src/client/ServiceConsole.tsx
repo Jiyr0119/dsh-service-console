@@ -88,7 +88,20 @@ interface Service {
   ownershipEvidence: string[]
 }
 interface ScanData { scannedAt: number; count: number; services: Service[]; partialWarnings: string[]; ledgerCount: number }
-interface ConfigData { refreshInterval: number; gracefulTimeout: number; forceKill: boolean }
+type ServiceScope = 'conversation' | 'workspace' | 'machine'
+interface ConfigData {
+  refreshInterval: number
+  defaultScope: ServiceScope
+  gracefulTimeout: number
+  showUnknown: boolean
+  forceKill: boolean
+}
+const SCOPE_KEY: Record<ServiceScope, ConsoleKey> = {
+  conversation: 'scope.conversation',
+  workspace: 'scope.workspace',
+  machine: 'scope.machine',
+}
+const DEFAULT_CONFIG_UI: ConfigData = { refreshInterval: 5000, defaultScope: 'workspace', gracefulTimeout: 3000, showUnknown: true, forceKill: false }
 
 // ---------- 测量弹窗位置（header 底部 → composer 顶部） ----------
 function measurePopup(): { top: number; height: number } {
@@ -119,9 +132,10 @@ export function ServiceConsoleEntry(): React.ReactElement {
 }
 
 // =====================================================================
-//  设置页（注册到 DSH settings.section）
+//  设置页（注册到 DSH settings.section；面板设置 tab 复用，onSaved 回传给面板）
 // =====================================================================
-export function ServiceConsoleSettings(): React.ReactElement {
+export interface SettingsProps { onSaved?: (config: ConfigData) => void }
+export function ServiceConsoleSettings({ onSaved }: SettingsProps): React.ReactElement {
   const [config, setConfig] = React.useState<ConfigData | null>(null)
   React.useEffect(() => {
     api<Envelope<{ config: ConfigData }>>('config', {})
@@ -130,7 +144,12 @@ export function ServiceConsoleSettings(): React.ReactElement {
   }, [])
   const updateConfig = (patch: Record<string, unknown>): void => {
     api<Envelope<{ config: ConfigData }>>('config', { action: 'update', patch })
-      .then((res) => { if (res?.data) setConfig(res.data.config) })
+      .then((res) => {
+        if (res?.data) {
+          setConfig(res.data.config)
+          onSaved?.(res.data.config)
+        }
+      })
       .catch(() => {})
   }
   if (!config) return <div className={styles.setPage}><div className={styles.note}>Loading…</div></div>
@@ -139,10 +158,43 @@ export function ServiceConsoleSettings(): React.ReactElement {
       <div className={styles.setSection}>{tr('settings.general')}</div>
       <div className={styles.setRow}>
         <div className={styles.setInfo}>
+          <div className={styles.setLabel}>{tr('settings.refreshInterval')}</div>
+          <div className={styles.setCap}>{tr('settings.refresh.desc')}</div>
+        </div>
+        <select className={styles.setInput + ' ' + styles.setSelect} value={config.refreshInterval}
+          onChange={(e) => updateConfig({ refreshInterval: parseInt(e.target.value, 10) })}>
+          <option value={0}>{tr('settings.refreshOff')}</option>
+          {[2000, 5000, 10000, 30000].map((n) => (
+            <option key={n} value={n}>{tr('settings.refreshN', { n: n / 1000 })}</option>
+          ))}
+        </select>
+      </div>
+      <div className={styles.setRow}>
+        <div className={styles.setInfo}>
+          <div className={styles.setLabel}>{tr('settings.defaultScope')}</div>
+        </div>
+        <select className={styles.setInput + ' ' + styles.setSelect} value={config.defaultScope}
+          onChange={(e) => updateConfig({ defaultScope: e.target.value })}>
+          {(['conversation', 'workspace', 'machine'] as const).map((s) => (
+            <option key={s} value={s}>{tr(SCOPE_KEY[s])}</option>
+          ))}
+        </select>
+      </div>
+      <div className={styles.setRow}>
+        <div className={styles.setInfo}>
           <div className={styles.setLabel}>{tr('settings.gracefulTimeout')}</div>
         </div>
         <input className={styles.setInput} type="number" defaultValue={config.gracefulTimeout}
           onBlur={(e) => updateConfig({ gracefulTimeout: parseInt(e.target.value, 10) })} />
+      </div>
+      <div className={styles.setRow}>
+        <div className={styles.setInfo}>
+          <div className={styles.setLabel}>{tr('settings.showUnknown')}</div>
+          <div className={styles.setCap}>{tr('settings.showUnknown.desc')}</div>
+        </div>
+        <button type="button" role="switch" aria-checked={config.showUnknown}
+          className={styles.switch}
+          onClick={() => updateConfig({ showUnknown: !config.showUnknown })} />
       </div>
       <div className={styles.setRow}>
         <div className={styles.setInfo}>
@@ -155,7 +207,7 @@ export function ServiceConsoleSettings(): React.ReactElement {
       </div>
       <div className={styles.setFooter}>
         <button type="button" className={styles.prevBtn}
-          onClick={() => updateConfig({ gracefulTimeout: 3000, forceKill: false })}>
+          onClick={() => updateConfig({ ...DEFAULT_CONFIG_UI })}>
           {tr('settings.restore')}
         </button>
       </div>
@@ -198,6 +250,11 @@ export function ServiceConsolePanel(): React.ReactElement | null {
     setToast({ seq: ++toastSeq.current, text, tone })
   const [expanded, setExpanded] = React.useState<string | null>(null)
   const [config, setConfig] = React.useState<ConfigData | null>(null)
+  // FR-05 范围：默认取配置 defaultScope，用户手动切换后不再被配置覆盖
+  const [scope, setScope] = React.useState<ServiceScope>('workspace')
+  const scopeTouched = React.useRef(false)
+  // 并发 action 去重（T1-10）：操作在途时忽略新的确认/触发
+  const [pending, setPending] = React.useState(false)
   const [, setLangTick] = React.useState(0) // 语言切换触发重渲染
   const timeoutRef = React.useRef<(() => void) | null>(null)
 
@@ -242,12 +299,18 @@ export function ServiceConsolePanel(): React.ReactElement | null {
   // 定时器清理
   React.useEffect(() => () => { timeoutRef.current?.() }, [])
 
-  // 加载配置
+  // 加载配置（每次打开面板刷新；defaultScope 仅在用户未手动切换时生效）
   React.useEffect(() => {
+    if (!on) return
     api<Envelope<{ config: ConfigData }>>('config', {})
-      .then((res) => setConfig(res?.data?.config ?? null))
+      .then((res) => {
+        const c = res?.data?.config ?? null
+        if (!c) return
+        setConfig(c)
+        if (!scopeTouched.current) setScope(c.defaultScope)
+      })
       .catch(() => {})
-  }, [])
+  }, [on])
 
   // ---------- 扫描 ----------
   const scan = React.useCallback(() => {
@@ -264,11 +327,25 @@ export function ServiceConsolePanel(): React.ReactElement | null {
 
   React.useEffect(() => { if (on && view.phase === 'idle') scan() }, [on, scan, view.phase])
 
+  // 自动轮询（FR-07）：按 refreshInterval 重扫；面板关闭/切到设置 tab 即取消，
+  // 扫描进行中不叠新定时器（scan 结束 phase 变化后重新武装）
+  React.useEffect(() => {
+    if (!on || tab !== 'services' || !config) return
+    if (!config.refreshInterval || view.phase === 'scanning') return
+    const cancel = timerCtx?.timeout(() => scan(), config.refreshInterval)
+    return () => { cancel?.() }
+  }, [on, tab, config, view.phase, scan])
+
   if (!on && !closing) return null
 
   // ---------- 操作 ----------
-  const runAction = (svc: Service, action: string): void => { setConfirming({ id: svc.id, action }); setOpResult(null) }
+  const runAction = (svc: Service, action: string): void => {
+    if (pending) return
+    setConfirming({ id: svc.id, action }); setOpResult(null)
+  }
   const confirmAction = (svc: Service, action: string): void => {
+    if (pending) return
+    setPending(true)
     setConfirming(null)
     api<Envelope<{ result?: string }>>('services/' + action, { serviceId: svc.id })
       .then((res) => {
@@ -290,10 +367,19 @@ export function ServiceConsolePanel(): React.ReactElement | null {
         setOpResult({ id: svc.id, ok: false, text: 'RPC error' })
         showToast('RPC error')
       })
+      .finally(() => setPending(false))
   }
 
-  // ---------- 过滤 ----------
+  // ---------- 过滤（FR-05 范围 → FR-07 未知显示 → 搜索） ----------
   let rows = view.data?.services ?? []
+  rows = rows.filter((s) => {
+    const l = ownershipLevel(s.ownership)
+    if (l === 'protected') return true // 受保护目标与范围无关，始终可见
+    if (scope === 'conversation') return l === 'conversation-confirmed'
+    if (scope === 'workspace') return l === 'conversation-confirmed' || l === 'workspace-inferred'
+    return true
+  })
+  if (config && !config.showUnknown) rows = rows.filter((s) => ownershipLevel(s.ownership) !== 'unknown')
   if (query) {
     const q = query.toLowerCase()
     rows = rows.filter((s) =>
@@ -308,6 +394,16 @@ export function ServiceConsolePanel(): React.ReactElement | null {
   const servicesBody = (
     <>
       <div className={styles.filterRow}>
+        <div className={styles.segGroup} role="group" aria-label={tr('settings.defaultScope')}>
+          {(['conversation', 'workspace', 'machine'] as const).map((s) => (
+            <button key={s} type="button"
+              className={styles.segBtn + (scope === s ? ' ' + styles.segBtnOn : '')}
+              aria-pressed={scope === s}
+              onClick={() => { scopeTouched.current = true; setScope(s) }}>
+              {tr(SCOPE_KEY[s])}
+            </button>
+          ))}
+        </div>
         <input className={styles.filter} type="text" value={query}
           placeholder={tr('search.ph')} onChange={(e) => setQuery(e.target.value)} />
         {query !== '' ? (
@@ -319,7 +415,9 @@ export function ServiceConsolePanel(): React.ReactElement | null {
       </div>
       <div className={styles.hintLine}>
         <span className={styles.liveDot} />
-        <span>{tr('panel.subtitle')}</span>
+        <span className={scope === 'machine' ? styles.hintWarn : undefined}>
+          {scope === 'machine' ? '⚠ ' + tr('scope.machineWarn') : tr('panel.subtitle')}
+        </span>
       </div>
       {view.phase === 'scanning' ? (
         <div className={styles.note}><span className={styles.spin} />{tr('status.scanning')}</div>
@@ -388,8 +486,10 @@ export function ServiceConsolePanel(): React.ReactElement | null {
                   <span className={styles.confirmTxt}>
                     {tr('confirm.txt', { name: svc.name, pid: String(svc.pid), action: confirming!.action === 'stop' ? tr('action.stop') : tr('action.restart') })}
                   </span>
-                  <button type="button" className={styles.confirmOk}
-                    onClick={() => confirmAction(svc, confirming!.action)}>{tr('action.confirm')}</button>
+                  <button type="button" className={styles.confirmOk} disabled={pending}
+                    onClick={() => confirmAction(svc, confirming!.action)}>
+                    {pending ? tr('action.pending') : tr('action.confirm')}
+                  </button>
                   <button type="button" className={styles.confirmCancel}
                     onClick={() => setConfirming(null)}>{tr('action.cancel')}</button>
                 </div>
@@ -422,7 +522,7 @@ export function ServiceConsolePanel(): React.ReactElement | null {
   )
 
   // ---------- 设置 body ----------
-  const settingsBody = <ServiceConsoleSettings />
+  const settingsBody = <ServiceConsoleSettings onSaved={setConfig} />
 
   return (
     <div className={styles.layer}>

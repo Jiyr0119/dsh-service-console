@@ -39,6 +39,7 @@ export const ZH_DICT = {
   'action.detail': '详情',
   'action.confirm': '确认',
   'action.cancel': '取消',
+  'action.pending': '处理中…',
 
   // 确认对话框
   'confirm.stop': '确认停止?',
@@ -56,6 +57,12 @@ export const ZH_DICT = {
   'own.other': '本机其他',
   'own.unknown': '未知',
   'own.protected': '受保护',
+
+  // 范围（FR-05）
+  'scope.conversation': '本次对话',
+  'scope.workspace': '当前工作区',
+  'scope.machine': '本机',
+  'scope.machineWarn': '本机范围可能影响其他项目的服务',
 
   // 详情面板
   'detail.title': '详情',
@@ -84,11 +91,18 @@ export const ZH_DICT = {
   // 设置
   'settings.title': '面板设置',
   'settings.general': '通用',
+  'settings.refreshInterval': '自动刷新间隔',
+  'settings.refresh.desc': '面板打开时定期自动重新扫描',
+  'settings.refreshOff': '关闭',
+  'settings.refreshN': '{n} 秒',
+  'settings.defaultScope': '默认范围',
+  'settings.showUnknown': '显示未知服务',
+  'settings.showUnknown.desc': '关闭后隐藏归属未知的服务',
   'settings.gracefulTimeout': '优雅超时 (ms)',
   'settings.forceKill': '允许强制终止',
   'settings.forceKill.desc': '优雅超时后发送 SIGKILL',
   'settings.restore': '恢复默认',
-  'settings.note': '配置在本次会话内生效，重启插件后恢复默认。',
+  'settings.note': '配置持久保存在 ~/.dsh/plugins/dsh-service-console/config.json。',
   'settings.nav': 'Service Console',
 
   // Star
@@ -134,6 +148,7 @@ export const EN_DICT = {
   'action.detail': 'Detail',
   'action.confirm': 'OK',
   'action.cancel': 'Cancel',
+  'action.pending': 'Working…',
 
   // 确认对话框
   'confirm.stop': 'Confirm stop?',
@@ -151,6 +166,12 @@ export const EN_DICT = {
   'own.other': 'Other local',
   'own.unknown': 'Unknown',
   'own.protected': 'Protected',
+
+  // 范围（FR-05）
+  'scope.conversation': 'This chat',
+  'scope.workspace': 'Workspace',
+  'scope.machine': 'This machine',
+  'scope.machineWarn': 'Machine scope may affect services of other projects',
 
   // 详情面板
   'detail.title': 'Detail',
@@ -179,11 +200,18 @@ export const EN_DICT = {
   // 设置
   'settings.title': 'Panel settings',
   'settings.general': 'General',
+  'settings.refreshInterval': 'Auto-refresh interval',
+  'settings.refresh.desc': 'Re-scan automatically while the panel is open',
+  'settings.refreshOff': 'Off',
+  'settings.refreshN': '{n}s',
+  'settings.defaultScope': 'Default scope',
+  'settings.showUnknown': 'Show unknown services',
+  'settings.showUnknown.desc': 'Hide services with unknown ownership when off',
   'settings.gracefulTimeout': 'Graceful timeout (ms)',
   'settings.forceKill': 'Allow force kill',
   'settings.forceKill.desc': 'Send SIGKILL after graceful timeout',
   'settings.restore': 'Reset to defaults',
-  'settings.note': 'Settings apply for this run; they reset when the plugin restarts.',
+  'settings.note': 'Saved to ~/.dsh/plugins/dsh-service-console/config.json — persists across restarts.',
   'settings.nav': 'Service Console',
 
   // Star

@@ -18,7 +18,18 @@ export declare function bindLocale(locale: {
     t: Translate;
     subscribe(fn: () => void): () => void;
 }): void;
+type ServiceScope = 'conversation' | 'workspace' | 'machine';
+interface ConfigData {
+    refreshInterval: number;
+    defaultScope: ServiceScope;
+    gracefulTimeout: number;
+    showUnknown: boolean;
+    forceKill: boolean;
+}
 export declare function ServiceConsoleEntry(): React.ReactElement;
-export declare function ServiceConsoleSettings(): React.ReactElement;
+export interface SettingsProps {
+    onSaved?: (config: ConfigData) => void;
+}
+export declare function ServiceConsoleSettings({ onSaved }: SettingsProps): React.ReactElement;
 export declare function ServiceConsolePanel(): React.ReactElement | null;
 export {};

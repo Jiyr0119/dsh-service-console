@@ -13,8 +13,10 @@ export const DEFAULT_CONFIG: Config = {
   autoCleanup: false,
 }
 
+// PRD FR-07：自动刷新仅允许 2/5/10/30 秒或关闭（0）
+export const REFRESH_INTERVAL_CHOICES: readonly number[] = [0, 2000, 5000, 10000, 30000]
+
 export const CONFIG_LIMITS: Record<string, [number, number]> = {
-  refreshInterval: [2000, 30000],
   gracefulTimeout: [1000, 15000],
 }
 
@@ -52,6 +54,13 @@ export function validateConfigPatch(patch: Record<string, unknown>): { ok: true;
     if (typeof v === 'boolean') {
       ;(next as Record<string, unknown>)[key] = v
       continue
+    }
+    if (key === 'refreshInterval') {
+      if (typeof v === 'number' && REFRESH_INTERVAL_CHOICES.includes(v)) {
+        next.refreshInterval = v
+        continue
+      }
+      return { ok: false, message: 'invalid value for: ' + key }
     }
     if (typeof v === 'number' && CONFIG_LIMITS[key]) {
       if (v < CONFIG_LIMITS[key][0] || v > CONFIG_LIMITS[key][1]) return { ok: false, message: 'config out of range: ' + key }
