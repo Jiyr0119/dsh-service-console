@@ -7,6 +7,7 @@
  * - UI: 抽屉式面板 + Tab 栏（服务 / 设置），对标 workspace-explorer 视觉风格
  */
 import * as React from 'react'
+import { Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import styles from './service-console.module.css'
 import type { ConsoleKey } from './dictionaries'
 
@@ -190,6 +191,11 @@ export function ServiceConsolePanel(): React.ReactElement | null {
   })
   const [confirming, setConfirming] = React.useState<{ id: string; action: string } | null>(null)
   const [opResult, setOpResult] = React.useState<{ id: string; ok: boolean; text: string } | null>(null)
+  // P0-3 平台 Toast：操作结果横幅（seq 驱动重挂载，重复文案也会重播）
+  const [toast, setToast] = React.useState<{ seq: number; text: string; tone?: 'success' } | null>(null)
+  const toastSeq = React.useRef(0)
+  const showToast = (text: string, tone?: 'success'): void =>
+    setToast({ seq: ++toastSeq.current, text, tone })
   const [expanded, setExpanded] = React.useState<string | null>(null)
   const [config, setConfig] = React.useState<ConfigData | null>(null)
   const [, setLangTick] = React.useState(0) // 语言切换触发重渲染
@@ -266,14 +272,24 @@ export function ServiceConsolePanel(): React.ReactElement | null {
     setConfirming(null)
     api<Envelope<{ result?: string }>>('services/' + action, { serviceId: svc.id })
       .then((res) => {
-        if (res?.ok) setOpResult({ id: svc.id, ok: true, text: action === 'stop' ? tr('result.stopped') : tr('result.restarted') })
-        else {
+        let ok: boolean
+        let text: string
+        if (res?.ok) {
+          ok = true
+          text = action === 'stop' ? tr('result.stopped') : tr('result.restarted')
+        } else {
+          ok = false
           const code = res?.error?.code ?? ''
-          setOpResult({ id: svc.id, ok: false, text: trError(code, res?.error?.message || tr('result.error')) })
+          text = trError(code, res?.error?.message || tr('result.error'))
         }
+        setOpResult({ id: svc.id, ok, text })
+        showToast(text, ok ? 'success' : undefined)
         scan()
       })
-      .catch(() => setOpResult({ id: svc.id, ok: false, text: 'RPC error' }))
+      .catch(() => {
+        setOpResult({ id: svc.id, ok: false, text: 'RPC error' })
+        showToast('RPC error')
+      })
   }
 
   // ---------- 过滤 ----------
@@ -410,6 +426,9 @@ export function ServiceConsolePanel(): React.ReactElement | null {
 
   return (
     <div className={styles.layer}>
+      {toast ? (
+        <Toast key={toast.seq} text={toast.text} tone={toast.tone} onDone={() => setToast(null)} />
+      ) : null}
       <div className={styles.popup + (shown ? ' ' + styles.popupOn : '')}
         style={{ top: rect.top, height: rect.height }}>
         {/* Head */}
