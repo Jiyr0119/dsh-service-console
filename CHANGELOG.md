@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.0 (2026-10-14)
+
+P0 功能/体验优化里程碑（真机 DSH 0.2.0-rc.2 全套验证通过）。
+
+- **P0-1 受保护进程防护**：快照标记受保护目标（DSH Web 控制台端口、插件宿主进程），面板不显示其停止/重启按钮，API 层拒绝并返回 `PROTECTED_PROCESS`（纯函数 `classifyProtection` + 单测）。
+- **P0-2 只读 `service_list` 模型工具**：注册 `service_list` 工具（`query`/`ownership`/`limit` 过滤，输出含 `protected` 标记与归属证据），无 `tools` 服务的组合下自动跳过，面板/API 不受影响。
+- **P0-3 操作结果 Toast**：停止/重启结果使用平台 Toast 横幅（成功 tone、3 秒停留），不再随列表重扫而消失；操作在途去重。
+- **P0-4 设置页补全 + 自动轮询 + 范围切换**：设置页补齐自动刷新间隔（关闭/2/5/10/30 秒离散档位，后端枚举校验）、默认范围、显示未知服务；面板按间隔自动重扫（面板关闭/切到设置 tab 即取消，与进行中的扫描不重叠）；范围分段控件（本次对话/当前工作区/本机，本机范围显示影响警示，受保护目标恒可见）；`恢复默认` 重置全部配置；配置说明修正为持久化路径。
+- **P0-5 客户端类型化**：i18n 键域（`ConsoleKey`）与 DSH slot/locale 注册全链路类型化（缺键/多键/拼写错误=编译错误），翻译函数类型化。
+- **依赖**：新增 devDeps `@deepseek-ai/dsh-tools`、`@deepseek-ai/dsh-client-ui-primitives`（`^0.2.0-rc.2`）；tsdown `external` 增加 `@deepseek-ai/*` 与 `cordis`，新入口文件显式加入 entry 列表。
+
 ## 0.6.0 (2026-09-30)
 
 - **DSH 0.2.0 适配**：开发依赖升级到 `0.2.0-rc.2`（`dsh-client-locale` / `dsh-client-ui-conversation` / `dsh-client-ui-slots` / `dsh-host-webserver`）；`@deepseek-ai/cordis` peer/dev 范围改为 `~4.0.4`（0.2.0 平台包的 peer 要求）；`dsh.plugin.json` 的 `engines.dsh` 提升为 `>=0.2.0-rc.2`。
