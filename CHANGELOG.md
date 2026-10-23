@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.1 (2026-10-23)
+
+**热挂载/双装载幂等**——修复桌面 dshmarket 更新后界面国际化丢失（UI 退回 `entry.label` 等原始键）。
+
+- **事故链**：桌面 dshmarket 热更新会把插件装载两次，第二次 `locale.register` 抛 `already has locale`、`webServer.register` 抛 `duplicate exact route`。旧版客户端 i18n 初始化在异常后直接放弃绑定（`tr` 退回原始键），Host 侧直接激活失败还会导致更新验证失败、回滚进入脏状态。
+- **Client**：词典注册逐条幂等（`already has locale` 视为已注册跳过），且无论注册是否抛错都完成翻译绑定（`src/client/i18n.ts`，含变量插值兜底与语言切换重绑）；locale 服务恢复可选注入（与 0.6.0 一致，缺失时插件其余功能不受影响）。
+- **Host**：路由/工具注册包 `ctx.effect`（卸载即注销）+ 单条 try/catch（重复注册跳过而非炸掉整个激活）——dshmarket 更新验证可通过，历史脏状态下热挂载即恢复翻译。
+- **回归**：typecheck + 35 单测（新增 6 个热挂载幂等用例）；真机 DSH 验证入口/面板/设置页文案与 `{n}` 插值全部正常。
+
 ## 0.7.0 (2026-10-14)
 
 P0 功能/体验优化里程碑（真机 DSH 0.2.0-rc.2 全套验证通过）。
