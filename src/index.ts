@@ -142,36 +142,55 @@ export default {
     ]
 
     // 逐条注册（绝不一次传入数组 —— 数组会让路由静默失效）
+    // 每条包 ctx.effect（卸载即注销）+ try/catch：桌面 dshmarket 热更新会双装载插件，
+    // 第二次注册抛 "duplicate exact route"——跳过而非炸掉整个激活（0.7.1 幂等）。
     for (const route of routes) {
-      ctx.webServer.register({
-        kind: 'exact',
-        path: route.path,
-        handler: async (req, res) => {
-          const body = await readJsonBody(req)
-          if (body === null) {
-            sendJson(res, 400, { ok: false, error: { code: 'BAD_REQUEST', message: 'invalid JSON body' } })
-            return
+      ctx.effect(() => {
+        try {
+          return ctx.webServer.register({
+            kind: 'exact',
+            path: route.path,
+            handler: async (req, res) => {
+              const body = await readJsonBody(req)
+              if (body === null) {
+                sendJson(res, 400, { ok: false, error: { code: 'BAD_REQUEST', message: 'invalid JSON body' } })
+                return
+              }
+              try {
+                const result = await route.handler(body)
+                sendJson(res, result.ok ? 200 : 400, result)
+              } catch (e) {
+                sendJson(res, 500, { ok: false, error: { code: 'INTERNAL', message: String((e as Error)?.message || e) } })
+              }
+            },
+          })
+        } catch (e) {
+          if (process.env.DSH_SC_DEBUG === '1') {
+            console.warn(`[dsh-sc] webServer route skip ${route.path}:`, String(e))
           }
-          try {
-            const result = await route.handler(body)
-            sendJson(res, result.ok ? 200 : 400, result)
-          } catch (e) {
-            sendJson(res, 500, { ok: false, error: { code: 'INTERNAL', message: String((e as Error)?.message || e) } })
-          }
-        },
+          return () => {}
+        }
       })
     }
 
     // P0-2 模型工具（只读 service_list）：tools 服务可选——没有 dsh-tools 的
-    // 组合下跳过注册，插件其余功能（API/面板）不受影响
+    // 组合下跳过注册，插件其余功能（API/面板）不受影响。
+    // 注册同样幂等（热挂载双装载时 register 抛重复，跳过）。
     const tools = ctx.get('tools') as ToolRuntime | undefined
     if (tools) {
       ctx.effect(() => {
-        const off = tools.register(buildServiceTool({ snapshot }))
-        if (process.env.DSH_SC_DEBUG === '1') {
-          console.log(`[dsh-sc] service_list registered: ${String(Boolean(tools.get('service_list')))}`)
+        try {
+          const off = tools.register(buildServiceTool({ snapshot }))
+          if (process.env.DSH_SC_DEBUG === '1') {
+            console.log(`[dsh-sc] service_list registered: ${String(Boolean(tools.get('service_list')))}`)
+          }
+          return off
+        } catch (e) {
+          if (process.env.DSH_SC_DEBUG === '1') {
+            console.warn('[dsh-sc] tools.register skip:', String(e))
+          }
+          return () => {}
         }
-        return off
       })
     } else if (process.env.DSH_SC_DEBUG === '1') {
       console.log('[dsh-sc] tools service absent — service_list not registered')

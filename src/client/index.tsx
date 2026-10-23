@@ -11,7 +11,6 @@
  * SlotMap 键均由平台类型包增广；平台包仅 type-only 导入，构建时擦除。
  */
 import type { Context } from '@deepseek-ai/cordis'
-import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 // 平台类型增广（SlotMap / Context.slots / Context.locale）——type-only，不进 bundle
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
@@ -25,6 +24,7 @@ import {
   bindTimer,
   bindLocale,
 } from './ServiceConsole'
+import { registerDictionaries, bindTranslator, type LocaleCompat, type Translate } from './i18n'
 import { ZH_DICT, EN_DICT, type ConsoleKey } from './dictionaries'
 
 // 把本插件词典并入平台 LocaleNamespaceMap：register(ns, dicts) 与 bind(ns)
@@ -44,21 +44,26 @@ interface TimerLike {
 
 type ClientContext = Context & { timer: TimerLike }
 
-let labelT: TranslateNS<'dsh-service-console'> | null = null
+let labelT: Translate | null = null
 function labelFn(key: ConsoleKey): string {
   return labelT ? labelT(key) : key
 }
 
 export default {
-  inject: ['slots', 'timer', 'locale'],
+  inject: ['slots', 'timer'],
   apply(ctx: ClientContext) {
     bindTimer(ctx.timer)
 
-    // ---------- i18n: 一次注册双语词典 + 绑定类型化翻译函数 ----------
-    const locale = ctx.locale
-    ctx.effect(() => locale.register(NS, { zh: ZH_DICT, en: EN_DICT }))
-    labelT = locale.bind(NS)
-    bindLocale({ t: labelT, subscribe: (fn) => locale.subscribe(fn) })
+    // ---------- i18n：幂等注册 + 稳定绑定（热挂载/双装载安全，0.7.1） ----------
+    // 桌面 dshmarket 热更新会双装载插件：第二次 register 抛 already has locale。
+    // 忽略注册异常但始终完成绑定——否则 tr 退回原始键（0.7.0 之前的事故根因）。
+    const locale = ctx.get('locale') as LocaleCompat | undefined
+    if (locale !== undefined) {
+      ctx.effect(() => registerDictionaries(locale, NS, [['zh', ZH_DICT], ['en', EN_DICT]]))
+      const bound = bindTranslator(locale, NS)
+      labelT = bound.t
+      bindLocale(bound)
+    }
 
     // ---------- Header 入口按钮 ----------
     ctx.effect(() =>

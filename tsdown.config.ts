@@ -39,6 +39,7 @@ const nodeLib: UserConfig = {
   name: ID,
   entry: [
     'src/index.ts',
+    'src/client/i18n.ts',
     'src/host/process-inspector.ts',
     'src/host/redaction.ts',
     'src/host/ownership.ts',
