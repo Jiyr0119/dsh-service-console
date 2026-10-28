@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.2 (2026-10-28)
+
+**i18n 真修复**——修复用户下载安装后（桌面 dsh 客户端）界面退回 `entry.label` 等原始键。0.7.1 只覆盖了热挂载双装载的一半场景，以下两个根因当时均未修复。
+
+- **根因 1 · 桌面竞态（0.7.1 未修复）**：桌面客户端由 `dsh-app:` 协议 preload 注入 `__DSH_LOCALE__` 原生桥，`dsh-client-locale` 的 apply 必须先 `await bridge.read()`（Electron IPC）才 `ctx.provide('locale')`；本插件 apply 先跑，0.7.1 的一次性 `ctx.get('locale')` 取到 `undefined` 即整体跳过 i18n（注册+绑定全部不做），UI 永久回显原始键。浏览器开发环境无该桥、provide 同步完成，所以本地验证“通过”；热挂载时服务早已就绪也会恢复——两者共同掩盖了竞态。另注：cordis `ctx.get`（strict）在 provider fiber 尚未落定时同样返回 `undefined`。
+- **根因 2 · 热更新 dispose 顺序（0.7.1 未修复）**：dshmarket 更新双装载时第二次 `register` 抛 `already has locale` 被跳过，随后旧实例卸载把词典 disposer 撤走，留下没有词典的新实例回显原始键。
+- **Client**：新增 `attachLocale`（`src/client/i18n.ts`）——改用 `ctx.inject(['locale'], …)` 平台注入等待语义，等 locale 服务真正可用后注册/绑定；provider 重启、热更新重载自动重绑；词典注册保持幂等且不再随实例卸载撤销（双装载安全）；非重复类注册错误不再被裸 catch 静默吞掉（`console.warn` 留痕）。
+- **回归**：typecheck + 39 单测（新增 4 个真实 cordis fiber 驱动用例：locale 晚到、双装载 dispose 顺序、locale 服务重启、locale 缺失降级）；时序复现（真实 cordis + 真实词典/绑定代码）确认桌面时序下修复前回显 `entry.label`、修复后为 `服务`。
+
 ## 0.7.1 (2026-10-23)
 
 **热挂载/双装载幂等**——修复桌面 dshmarket 更新后界面国际化丢失（UI 退回 `entry.label` 等原始键）。
