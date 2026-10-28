@@ -24,7 +24,7 @@ import {
   bindTimer,
   bindLocale,
 } from './ServiceConsole'
-import { registerDictionaries, bindTranslator, type LocaleCompat, type Translate } from './i18n'
+import { attachLocale, type Translate } from './i18n'
 import { ZH_DICT, EN_DICT, type ConsoleKey } from './dictionaries'
 
 // 把本插件词典并入平台 LocaleNamespaceMap：register(ns, dicts) 与 bind(ns)
@@ -54,16 +54,16 @@ export default {
   apply(ctx: ClientContext) {
     bindTimer(ctx.timer)
 
-    // ---------- i18n：幂等注册 + 稳定绑定（热挂载/双装载安全，0.7.1） ----------
-    // 桌面 dshmarket 热更新会双装载插件：第二次 register 抛 already has locale。
-    // 忽略注册异常但始终完成绑定——否则 tr 退回原始键（0.7.0 之前的事故根因）。
-    const locale = ctx.get('locale') as LocaleCompat | undefined
-    if (locale !== undefined) {
-      ctx.effect(() => registerDictionaries(locale, NS, [['zh', ZH_DICT], ['en', EN_DICT]]))
-      const bound = bindTranslator(locale, NS)
+    // ---------- i18n：反应式注册 + 绑定（桌面 locale 晚到 / 双装载安全，0.7.2） ----------
+    // 桌面客户端 dsh-client-locale 要先 await __DSH_LOCALE__.read()（Electron IPC）
+    // 才 ctx.provide('locale')；0.7.1 的一次性 ctx.get('locale') 此时取到 undefined
+    // 即整体跳过 i18n，UI 退回 entry.label 等原始键（用户下载后失效的根因）。
+    // attachLocale 用 ctx.inject 等服务真正可用后注册/绑定；provider 重启、
+    // dshmarket 热更新双装载都会重新进入并重绑。
+    attachLocale(ctx, NS, [['zh', ZH_DICT], ['en', EN_DICT]], (bound) => {
       labelT = bound.t
       bindLocale(bound)
-    }
+    })
 
     // ---------- Header 入口按钮 ----------
     ctx.effect(() =>

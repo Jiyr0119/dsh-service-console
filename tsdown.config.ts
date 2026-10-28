@@ -40,6 +40,7 @@ const nodeLib: UserConfig = {
   entry: [
     'src/index.ts',
     'src/client/i18n.ts',
+    'src/client/dictionaries.ts',
     'src/host/process-inspector.ts',
     'src/host/redaction.ts',
     'src/host/ownership.ts',
